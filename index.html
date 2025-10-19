@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUNARO | The Official Multi-Chain Empire dApp</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&family=Roboto:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body class="bg-darker-bg">
+
+  <header class="bg-black bg-opacity-70 backdrop-blur-sm p-4 shadow-lg fixed w-full z-50">
+    <nav class="container mx-auto flex flex-wrap justify-between items-center">
+      <div><a href="#"><img src="/logo.png" alt="LUNARO Logo" class="h-12 w-auto" /></a></div>
+      <ul class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm md:text-base">
+        <li><a href="#about" class="nav-link">About</a></li>
+        <li><a href="#tokenomics" class="nav-link">Tokenomics</a></li>
+        <li><a href="#presale-section" class="nav-link">Presale</a></li>
+        <li><a href="#roadmap" class="nav-link">Roadmap</a></li>
+        <li><a href="#store" class="nav-link">Store</a></li>
+        <li class="pl-2"><button id="connectWalletBtn" class="neon-button px-4 py-2">Connect Wallet</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="pt-40 pb-12">
+
+    <section id="hero" class="container mx-auto px-4 py-16 text-center">
+      <h1 class="text-5xl md:text-7xl font-bold mb-6" data-aos="fade-down">THE LUNARO EMPIRE <span
+          class="neon-text-purple flicker">ASCENDS</span></h1>
+      <p class="text-xl md:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+        Be a founder. Join the presale that funds the next great network of the cryptosphere—the terror of the
+        blockchain.
+      </p>
+      <a href="#presale-section" class="neon-button px-8 py-4 text-xl font-bold" data-aos="zoom-in"
+        data-aos-delay="400">GO TO PRESALE</a>
+    </section>
+
+    <section id="presale-section" class="container mx-auto px-4 py-16">
+      <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Official <span
+          class="neon-text-green">LUNARO</span> Presale</h2>
+      <div class="card-bg p-8 max-w-2xl mx-auto text-center" data-aos="zoom-in-up">
+
+        <div class="payment-tabs flex border-b border-gray-700 mb-6">
+          <button class="tab-btn active" data-tab="bnb">BNB</button>
+          <button class="tab-btn" data-tab="usdt">USDT</button>
+          <button class="tab-btn" data-tab="card">CARD</button>
+        </div>
+
+        <div id="tab-bnb" class="tab-content">
+          <h3 class="text-2xl neon-text-purple mb-2">Presale Ends In:</h3>
+          <div id="countdown" class="flex justify-center space-x-2 md:space-x-4 text-4xl font-bold neon-text-blue my-4">
+          </div>
+          <div class="my-6">
+            <div class="flex justify-between text-lg mb-2">
+              <span id="totalRaisedDisplay" class="neon-text-green">Loading...</span>
+              <span id="hardCapDisplay" class="neon-text-blue">Loading...</span>
+            </div>
+            <div class="progress-bar-container">
+              <div id="progressBarFill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="mt-8">
+            <h4 class="text-xl neon-text-blue">Your Wallet: <span id="walletStatus"
+                class="neon-text-purple">Disconnected</span></h4>
+            <p id="walletAddress" class="text-gray-500 text-sm break-all mt-2"></p>
+          </div>
+          <div id="purchase-area" class="mt-6">
+            <div class="mb-4 text-left">
+              <label for="currencyAmount" class="block text-gray-300 mb-2">Amount in BNB to buy:</label>
+              <input type="number" id="currencyAmount"
+                class="w-full p-3 bg-gray-800 border border-neon-gold text-neon-gold rounded-lg focus:outline-none disabled:opacity-50"
+                placeholder="Connect wallet" disabled>
+            </div>
+            <p class="text-lg text-gray-300 mb-6">You will receive Approx.: <span id="lnrToReceive"
+                class="neon-text-blue font-bold">0 LNR</span></p>
+            <button id="buyButton" class="w-full neon-button bg-yellow-500 text-black px-8 py-4 text-xl font-bold"
+              disabled>BUY WITH BNB</button>
+          </div>
+        </div>
+
+        <div id="tab-usdt" class="tab-content hidden">
+          <h3 class="text-2xl neon-text-blue mb-4">Buy with Stablecoin (USDT)</h3>
+          <p class="text-gray-400 mb-6">The system will swap your USDT for BNB and complete the purchase in one process.
+          </p>
+          <div class="mb-4 text-left">
+            <label for="usdtAmount" class="block text-gray-300 mb-2">Amount in USDT to buy:</label>
+            <input type="number" id="usdtAmount"
+              class="w-full p-3 bg-gray-800 border border-neon-blue text-neon-blue rounded-lg" placeholder="e.g., 500">
+          </div>
+          <p class="text-lg text-gray-300 mb-6">You will receive Approx.: <span id="usdtLnrToReceive"
+              class="neon-text-blue font-bold">0 LNR</span></p>
+          <button id="buyWithUsdtButton" class="w-full neon-button px-8 py-4 text-xl font-bold">BUY WITH USDT
+            (SIMULATED)</button>
+        </div>
+
+        <div id="tab-card" class="tab-content hidden">
+          <h3 class="text-2xl neon-text-purple mb-4">Buy with Credit Card</h3>
+          <p class="text-gray-400 mb-6">Powered by our partners, you can buy BNB directly with your card and receive LNR
+            in your wallet.</p>
+          <div class="mb-4 text-left">
+            <label for="cardAmount" class="block text-gray-300 mb-2">Amount in USD to buy:</label>
+            <input type="number" id="cardAmount"
+              class="w-full p-3 bg-gray-800 border border-neon-purple text-neon-purple rounded-lg"
+              placeholder="e.g., 500">
+          </div>
+          <p class="text-lg text-gray-300 mb-6">You will receive Approx.: <span id="cardLnrToReceive"
+              class="neon-text-purple font-bold">0 LNR</span></p>
+          <button id="buyWithCardButton" class="w-full neon-button px-8 py-4 text-xl font-bold">BUY WITH CARD
+            (SIMULATED)</button>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="container mx-auto px-4 py-8">
+      <h3 class="text-2xl text-center font-bold mb-6 neon-text-blue" data-aos="fade-up">Live Purchase Feed</h3>
+      <div id="live-feed-list" class="max-w-3xl mx-auto space-y-2">
+      </div>
+    </section>
+
+    <section id="mascot" class="container mx-auto px-4 py-16">
+      <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Meet <span
+          class="neon-text-purple">Luncão</span>, Our Guardian!</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center card-bg p-8 max-w-5xl mx-auto" data-aos="zoom-in">
+        <img src="/luncan.png" alt="Mascot Luncão" class="mascot-image rounded-lg" />
+        <div class="text-center md:text-left" data-aos="fade-left">
+          <p class="text-lg text-gray-300 leading-relaxed">Luncão personifies the resilience and bold vision of the
+            LUNARO empire, guiding users through the quests of our rising ecosystem.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="store" class="container mx-auto px-4 py-16">
+      <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">LUNARO Store | <span
+          class="neon-text-green">Wear the Empire</span></h2>
+      <div class="card-bg p-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="merch-card" data-aos="fade-up"><img src="/merch/shirt.png" class="merch-image">
+          <h4 class="text-xl font-bold neon-text-purple">Empire Tee</h4><button class="neon-button w-full mt-4 py-2"
+            disabled>Coming Soon</button>
+        </div>
+        <div class="merch-card" data-aos="fade-up" data-aos-delay="100"><img src="/merch/moletom.png"
+            class="merch-image">
+          <h4 class="text-xl font-bold neon-text-blue">Cyberpunk Hoodie</h4><button class="neon-button w-full mt-4 py-2"
+            disabled>Coming Soon</button>
+        </div>
+        <div class="merch-card" data-aos="fade-up" data-aos-delay="200"><img src="/merch/bone.png" class="merch-image">
+          <h4 class="text-xl font-bold neon-text-green">LNR Snapback</h4><button class="neon-button w-full mt-4 py-2"
+            disabled>Coming Soon</button>
+        </div>
+        <div class="merch-card" data-aos="fade-up" data-aos-delay="300"><img src="/merch/copo.png" class="merch-image">
+          <h4 class="text-xl font-bold neon-text-gold">Pioneer's Mug</h4><button class="neon-button w-full mt-4 py-2"
+            disabled>Coming Soon</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tokenomics" class="container mx-auto px-4 py-16">
+      <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Imperial <span
+          class="neon-text-green">Tokenomics</span></h2>
+      <div class="card-bg p-8 max-w-5xl mx-auto" data-aos="zoom-in-up">
+        <div class="text-center mb-8">
+          <h3 class="text-3xl font-bold neon-text-gold">Total Supply: 1,000,000,000 LNR</h3>
+          <p class="text-xl text-gray-400 mt-2">Forged on the BNB Chain</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+          <div class="token-card" data-aos="fade-up" data-aos-delay="100">
+            <div class="token-percent neon-text-blue">25%</div>
+            <h4 class="token-title">Treasury & Stability</h4>
+            <p class="token-desc">To ensure the long-term health and stability of the empire's economy.</p>
+          </div>
+          <div class="token-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="token-percent neon-text-purple">20%</div>
+            <h4 class="token-title">Marketing & CEX</h4>
+            <p class="token-desc">To fund global campaigns and secure listings on major exchanges.</p>
+          </div>
+          <div class="token-card" data-aos="fade-up" data-aos-delay="300">
+            <div class="token-percent neon-text-green">30%</div>
+            <h4 class="token-title">Staking & Rewards</h4>
+            <p class="token-desc">To reward the loyal citizens of the empire who stake their LNR.</p>
+          </div>
+          <div class="token-card" data-aos="fade-up" data-aos-delay="400">
+            <div class="token-percent neon-text-gold">25%</div>
+            <h4 class="token-title">Development & Team</h4>
+            <p class="token-desc">To build the future LNR Mainnet, the game, and expand the ecosystem.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="container mx-auto px-4 py-16">
+      <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">The Imperial <span
+          class="neon-text-purple">Roadmap</span></h2>
+      <div class="roadmap-container relative max-w-4xl mx-auto">
+
+        <div class="roadmap-item" data-aos="fade-left">
+          <div class="roadmap-phase neon-text-blue">Phase 1</div>
+          <h3 class="roadmap-title">The Genesis Forge</h3>
+          <ul class="roadmap-list">
+            <li><i class="fas fa-check-circle text-green-500"></i> Smart Contract Development & Audit</li>
+            <li><i class="fas fa-check-circle text-green-500"></i> Imperial dApp Launch (v1)</li>
+            <li><i class="fas fa-check-circle text-green-500"></i> Global Presale Begins (BNB)</li>
+            <li><i class="fas fa-rocket"></i> MoonPay & 1inch Integration</li>
+          </ul>
+        </div>
+
+        <div class="roadmap-item" data-aos="fade-right">
+          <div class="roadmap-phase neon-text-purple">Phase 2</div>
+          <h3 class="roadmap-title">The First Conquest</h3>
+          <ul class="roadmap-list">
+            <li><i class="fas fa-rocket"></i> PancakeSwap Launch (DEX)</li>
+            <li><i class="fas fa-rocket"></i> First CEX Listing (Bitget/KuCoin)</li>
+            <li><i class="fas fa-rocket"></i> Genesis NFT Collection Mint</li>
+            <li><i class="fas fa-rocket"></i> LUNARO Staking Protocol (v1)</li>
+          </ul>
+        </div>
+
+        <div class="roadmap-item" data-aos="fade-left">
+          <div class="roadmap-phase neon-text-green">Phase 3</div>
+          <h3 class="roadmap-title">Expanding the Empire</h3>
+          <ul class="roadmap-list">
+            <li><i class="fas fa-rocket"></i> Multi-chain Bridge (SOL, TON)</li>
+            <li><i class="fas fa-rocket"></i> LUNARO Store (Merch) Goes Live</li>
+            <li><i class="fas fa-rocket"></i> Beta Launch of Web3 Game</li>
+            <li><i class="fas fa-rocket"></i> Tier-1 CEX Listing (Binance/OKX)</li>
+          </ul>
+        </div>
+
+        <div class="roadmap-item" data-aos="fade-right">
+          <div class="roadmap-phase neon-text-gold">Phase 4</div>
+          <h3 class="roadmap-title">The LNR Mainnet</h3>
+          <ul class="roadmap-list">
+            <li><i class="fas fa-infinity"></i> LUNARO Mainnet Testnet Launch</li>
+            <li><i class="fas fa-infinity"></i> Decentralized Governance (DAO)</li>
+            <li><i class="fas fa-infinity"></i> The Full Lunaro Empire Ecosystem</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+<section id="how-to-buy" class="container mx-auto px-4 py-16">
+  <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">How to Join the <span
+      class="neon-text-gold">Empire</span></h2>
+  <div class="card-bg p-4 md:p-8 max-w-4xl mx-auto" data-aos="zoom-in">
+    <div class="video-container rounded-lg overflow-hidden">
+      <iframe src="https://www.youtube.com/embed/YOUR_YOUTUBE_VIDEO_ID" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+</section>
+<section id="nft" class="container mx-auto px-4 py-16">
+  <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Imperial <span
+      class="neon-text-purple">NFTs</span></h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+
+    <div class="nft-card" data-aos="fade-right">
+      <img src="/nft-genesis.png" alt="Genesis NFT" class="nft-image">
+      <div class="p-6">
+        <h3 class="text-2xl font-bold neon-text-gold mb-3">Genesis Collection</h3>
+        <span class="nft-tag">Top 10 Presale Buyers</span>
+        <p class="text-gray-300 mt-4">An eternal symbol of pioneer status, immortalized on the blockchain. The ultimate
+          badge of honor for the empire's founders.</p>
+      </div>
+    </div>
+
+    <div class="nft-card" data-aos="fade-left">
+      <img src="/nft-pioneer.png" alt="Pioneer Pass NFT" class="nft-image">
+      <div class="p-6">
+        <h3 class="text-2xl font-bold neon-text-blue mb-3">Pioneer Pass</h3>
+        <span class="nft-tag">Buyers > 1 BNB</span>
+        <p class="text-gray-300 mt-4">Granted to all who invest over 1 BNB. Unlocks exclusive access to the game beta,
+          whitelist futures, and the LNR Network.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="staking" class="container mx-auto px-4 py-16">
+  <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Put Your LNR to <span
+      class="neon-text-blue">Work</span></h2>
+  <div class="card-bg p-8 md:p-12 max-w-3xl mx-auto text-center" data-aos="zoom-in">
+    <i class="fas fa-coins text-6xl neon-text-gold mb-6"></i>
+    <h3 class="text-3xl font-bold neon-text-blue mb-4">Staking Protocol V1</h3>
+    <p class="text-xl text-gray-400 mb-8">Our long-term holders are the backbone of the empire. Our staking protocol
+      will offer a 10% APY reward, paid in LNR, for securing the network.</p>
+    <button class="neon-button px-8 py-3 text-lg" disabled>Coming in Phase 2</button>
+  </div>
+</section>
+<section id="security" class="container mx-auto px-4 py-16">
+  <h2 class="text-4xl md:text-5xl text-center font-bold mb-12" data-aos="fade-up">Security & <span
+      class="neon-text-green">Trust</span></h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto text-center">
+
+    <div class="security-card" data-aos="fade-up">
+      <i class="fas fa-shield-halved text-5xl neon-text-green mb-4"></i>
+      <h4 class="text-2xl font-bold mb-3">Audited Contract</h4>
+      <p class="text-gray-400">Our smart contract is being audited by a top-tier independent security firm.</p>
+    </div>
+
+    <div class="security-card" data-aos="fade-up" data-aos-delay="100">
+      <i class="fas fa-lock text-5xl neon-text-blue mb-4"></i>
+      <h4 class="text-2xl font-bold mb-3">Locked Liquidity</h4>
+      <p class="text-gray-400">30% of funds are programmatically locked in a permanent liquidity pool.</p>
+    </div>
+
+    <div class="security-card" data-aos="fade-up" data-aos-delay="200">
+      <i class="fas fa-file-contract text-5xl neon-text-purple mb-4"></i>
+      <h4 class="text-2xl font-bold mb-3">Verified Contract</h4>
+      <p class="text-gray-400">Our contract is publicly verified on BSCScan for full transparency.</p>
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="bg-black bg-opacity-70 backdrop-blur-sm p-8 mt-16">
+    <div class="container mx-auto text-center text-gray-400">
+      <div class="flex justify-center space-x-6 mb-6">
+        <a href="YOUR_TWITTER_LINK" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
+        <a href="YOUR_TELEGRAM_LINK" target="_blank" class="social-icon"><i class="fab fa-telegram"></i></a>
+        <a href="YOUR_DISCORD_LINK" target="_blank" class="social-icon"><i class="fab fa-discord"></i></a>
+        <a href="YOUR_INSTAGRAM_LINK" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+      </div>
+      <p>&copy; 2025 LUNARO EMPIRE. All rights reserved.</p>
+      <p class="text-sm mt-4">For project updates, contact: <span class="neon-text-green">updates@lunaro.finance</span>
+      </p>
+    </div>
+  </footer>
+
+  <div id="purchaseSuccessModal" class="feedback-modal hidden">
+    <div class="modal-content success"><span class="emoji">🎉</span>
+      <h3 class="neon-text-green">Purchase Successful!</h3>
+      <p>Welcome to the Lunaro Empire!</p>
+    </div>
+  </div>
+  <div id="purchaseFailureModal" class="feedback-modal hidden">
+    <div class="modal-content failure"><span class="emoji">😿</span>
+      <h3 class="neon-text-red">Transaction Failed</h3>
+      <p>Please check the console for details.</p>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+</body>
+
+</html>

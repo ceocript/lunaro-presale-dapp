@@ -1,0 +1,543 @@
+/* ==========================================================================
+   TEMA "LUA DARK" IMPERIAL E ESTILOS GERAIS
+   ========================================================================== */
+:root {
+  --neon-blue: #00ddff;
+  --neon-purple: #dd00ff;
+  --neon-green: #00ff6a;
+  --neon-red: #ff004c;
+  --dark-bg: #0a0a0a;
+  --darker-bg: #030008;
+  --bnb-gold: #f0b90b;
+  --text-primary: #f0f0f0;
+  --text-secondary: #a09cb8;
+  --border-color: #3a364f;
+  --font-heading: 'Oxanium', monospace;
+  --font-body: 'Roboto', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--darker-bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><g fill="%231a1820" fill-opacity="0.4"><rect x="50" width="50" height="50"/><rect y="50" width="50" height="50"/></g></svg>');
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.nav-link,
+.neon-button {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 3.2rem;
+  text-shadow: 0 0 20px var(--neon-purple);
+  letter-spacing: 2px;
+}
+
+h2 {
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+section {
+  padding: 4rem 1rem;
+}
+
+/* Ajustado o padding para seções */
+
+/* Efeitos de texto neon e glitch */
+.neon-text-blue {
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue), 0 0 10px #00aaff;
+}
+
+.neon-text-purple {
+  color: var(--neon-purple);
+  text-shadow: 0 0 5px var(--neon-purple), 0 0 10px #aa00ff;
+}
+
+.neon-text-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 5px var(--neon-green), 0 0 10px #00aa44;
+}
+
+.neon-text-gold {
+  color: var(--bnb-gold);
+  text-shadow: 0 0 5px var(--bnb-gold);
+}
+
+.neon-text-red {
+  color: var(--neon-red);
+  text-shadow: 0 0 5px var(--neon-red);
+}
+
+.flicker {
+  animation: flicker 3s infinite alternate;
+}
+
+@keyframes flicker {
+
+  0%,
+  18%,
+  22%,
+  25%,
+  53%,
+  57%,
+  100% {
+    text-shadow: 0 0 4px #fff, 0 0 11px var(--neon-purple), 0 0 19px var(--neon-purple), 0 0 40px var(--neon-purple);
+  }
+
+  20%,
+  24%,
+  55% {
+    text-shadow: none;
+  }
+}
+
+/* ==========================================================================
+   COMPONENTES GLOBAIS (BOTÕES, CARDS)
+   ========================================================================== */
+.neon-button {
+  background-color: var(--neon-blue);
+  color: var(--darker-bg);
+  text-shadow: none;
+  box-shadow: 0 0 10px var(--neon-blue);
+  transition: all 0.3s ease-in-out;
+  border: none;
+  cursor: pointer;
+}
+
+.neon-button:hover:not(:disabled) {
+  box-shadow: 0 0 15px var(--neon-blue), 0 0 25px var(--neon-blue);
+  transform: translateY(-2px);
+}
+
+.neon-button:disabled {
+  background-color: #555;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.card-bg {
+  background-color: var(--dark-bg);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+  border-radius: 1rem;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.card-bg:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+}
+
+.hidden {
+  display: none;
+}
+
+/* ==========================================================================
+   LAYOUT E SEÇÕES ESPECÍFICAS
+   ========================================================================== */
+.nav-link {
+  color: #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue);
+}
+
+/* --- SEÇÃO DAPP (PAINEL DE PRÉ-VENDA) --- */
+.progress-bar-container {
+  background-color: #333;
+  border-radius: 9999px;
+  height: 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--neon-green);
+  border-radius: 9999px;
+  transition: width 0.5s ease-in-out;
+  box-shadow: 0 0 8px var(--neon-green);
+}
+
+.payment-options {
+  display: flex;
+  gap: 1rem;
+}
+
+.payment-btn {
+  flex: 1;
+  background: #333;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.payment-btn:hover:not(:disabled) {
+  background: var(--neon-blue);
+  color: var(--dark-bg);
+  border-color: var(--neon-blue);
+}
+
+/* --- ABAS DE PAGAMENTO (NOVO) --- */
+.payment-tabs {
+  width: 100%;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  /* Alinha com a borda do container */
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--neon-blue);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.tab-btn.active {
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.tab-btn.active::after {
+  transform: scaleX(1);
+}
+
+/* --- SEÇÃO MASCOTE --- */
+.mascot-image {
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 0 25px rgba(221, 0, 255, 0.5);
+  transition: all 0.3s ease-in-out;
+}
+
+.mascot-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 40px rgba(221, 0, 255, 0.8);
+}
+
+/* --- SEÇÃO LOJA (STORE / MERCH) --- */
+.merch-card {
+  background-color: #030008;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  transition: all 0.3s ease-in-out;
+}
+
+.merch-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 20px var(--neon-blue);
+  border-color: var(--neon-blue);
+}
+
+.merch-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* --- SEÇÃO TOKENOMICS (NOVO) --- */
+.token-card {
+  background: rgba(3, 0, 8, 0.6);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.token-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-blue);
+}
+
+.token-percent {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.token-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.token-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --- SEÇÃO ROADMAP (NOVO) --- */
+.roadmap-container {
+  border-left: 3px solid var(--border-color);
+  padding: 2rem 0;
+}
+
+.roadmap-item {
+  position: relative;
+  padding: 1.5rem 1.5rem 1.5rem 3rem;
+  margin-bottom: 2rem;
+  background: var(--dark-bg);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.roadmap-item:hover {
+  box-shadow: 0 0 20px var(--neon-purple);
+  border-color: var(--neon-purple);
+}
+
+.roadmap-item::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 2rem;
+  width: 20px;
+  height: 20px;
+  background: var(--darker-bg);
+  border: 3px solid var(--neon-purple);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.roadmap-phase {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.roadmap-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.roadmap-list {
+  list-style: none;
+  padding: 0;
+}
+
+.roadmap-list li {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.roadmap-list li i {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.roadmap-list li .fa-rocket {
+  color: var(--neon-purple);
+}
+
+.roadmap-list li .fa-infinity {
+  color: var(--neon-gold);
+}
+
+/* --- Ícones Sociais (Footer) --- */
+.social-icon {
+  font-size: 1.5rem;
+  transition: all 0.3s;
+}
+
+.social-icon:hover {
+  color: var(--neon-blue);
+  transform: scale(1.2);
+  text-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* ==========================================================================
+   MODAIS DE FEEDBACK
+   ========================================================================== */
+.feedback-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: var(--dark-bg);
+  padding: 3rem;
+  border-radius: 1rem;
+  text-align: center;
+  border: 2px solid;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.modal-content.success {
+  border-color: var(--neon-green);
+}
+
+.modal-content.failure {
+  border-color: var(--neon-red);
+}
+
+.modal-content .emoji {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   FEED DE COMPRAS AO VIVO
+   ========================================================================== */
+.live-purchase-item {
+  background: rgba(10, 10, 10, 0.8);
+  border-left: 3px solid var(--neon-green);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+/* ==========================================================================
+   ESTILOS ADICIONAIS: SEÇÕES FINAIS (VÍDEO, NFT, STAKING, SECURITY)
+   ========================================================================== */
+
+/* --- SEÇÃO COMO COMPRAR (VÍDEO) --- */
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  /* 16:9 Aspect Ratio */
+  height: 0;
+  overflow: hidden;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- SEÇÃO NFTS --- */
+.nft-card {
+  background: var(--dark-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.nft-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 25px var(--neon-purple);
+  border-color: var(--neon-purple);
+}
+
+.nft-image {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.nft-tag {
+  background-color: var(--neon-gold);
+  color: var(--darker-bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.nft-card:last-of-type .nft-tag {
+  background-color: var(--neon-blue);
+}
+
+/* --- SEÇÃO SEGURANÇA & AUDITORIA --- */
+.security-card {
+  background: var(--dark-bg);
+  border: 1px solid var(--border-color);
+  padding: 2rem;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.security-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-green);
+  box-shadow: 0 0 15px var(--neon-green);
+}
