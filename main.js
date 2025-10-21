@@ -7,7 +7,7 @@ import { contractAddress, contractABI, tokens } from "./constants/index.js";
 // CONFIGURAÇÃO DO IMPÉRIO (!!! ATUALIZE AQUI !!!)
 // ========================================================================
 const COUNTDOWN_END_DATE = '2025-12-31T23:59:59'; // MUDE ESTA DATA!
-const BNB_PRICE_IN_USD = 600; // MUDE ESTE VALOR (Preço atual do BNB em USD)
+const BNB_PRICE_IN_USD = 1.098; // MUDE ESTE VALOR (Preço atual do BNB em USD)
 const USDT_PRICE_IN_USD = 1;
 const WALLETCONNECT_PROJECT_ID = '32ed3ea3bca55289803b2a1972da8a07'; // Seu ID do WalletConnect
 // ========================================================================
