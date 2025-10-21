@@ -1,4 +1,4 @@
-// main.js (VERSÃO IMPERIAL FINAL COM SWAP REAL 1INCH)
+// main.js (VERSÃO IMPERIAL VIDENTE - CORRIGE O FALSO "INSUFFICIENT FUNDS")
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import { contractAddress, contractABI, tokens } from "./constants/index.js";
@@ -7,7 +7,7 @@ import { contractAddress, contractABI, tokens } from "./constants/index.js";
 // CONFIGURAÇÃO DO IMPÉRIO (!!! ATUALIZE AQUI !!!)
 // ========================================================================
 const COUNTDOWN_END_DATE = '2025-12-31T23:59:59'; // MUDE ESTA DATA!
-const BNB_PRICE_IN_USD = 1.098; // MUDE ESTE VALOR (Preço atual do BNB em USD)
+const BNB_PRICE_IN_USD = 1098; // MUDE ESTE VALOR (Preço atual do BNB em USD)
 const USDT_PRICE_IN_USD = 1;
 const WALLETCONNECT_PROJECT_ID = '32ed3ea3bca55289803b2a1972da8a07'; // Seu ID do WalletConnect
 // ========================================================================
@@ -31,6 +31,7 @@ const web3Modal = new Web3Modal({
 // --- VARIÁVEIS GLOBAIS ---
 let provider, signer, userAddress, contract;
 let tokenRate = BigInt(0); // Taxa de LNR por 1 BNB
+let isSaleActive = false; // <<< O OLHO VIDENTE!
 
 // --- ELEMENTOS DO DOM ---
 const el = (id) => document.getElementById(id);
@@ -114,12 +115,12 @@ function updateUIOnConnect(address) {
     if (walletAddressEl) walletAddressEl.textContent = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
     if (connectWalletBtn) connectWalletBtn.textContent = 'Disconnect';
     
-    if (currencyAmountInput) { currencyAmountInput.disabled = false; currencyAmountInput.placeholder = "Ex: 0.5 BNB"; }
-    if (buyButton) buyButton.disabled = false;
-    if (usdtAmountInput) usdtAmountInput.disabled = false;
-    if (buyWithUsdtButton) buyWithUsdtButton.disabled = false;
-    if (cardAmountInput) cardAmountInput.disabled = false;
-    if (buyWithCardButton) buyWithCardButton.disabled = false;
+    // ATIVAÇÃO CONDICIONAL!
+    if (isSaleActive) {
+        enablePurchaseButtons();
+    } else {
+        disablePurchaseButtons("Sale is not active");
+    }
     
     updatePresaleData();
 }
@@ -129,14 +130,27 @@ function updateUIOnDisconnect() {
     if (walletStatusEl) walletStatusEl.className = 'neon-text-purple';
     if (walletAddressEl) walletAddressEl.textContent = '';
     if (connectWalletBtn) connectWalletBtn.textContent = 'Connect Wallet';
-
-    if (currencyAmountInput) { currencyAmountInput.disabled = true; currencyAmountInput.placeholder = "Connect wallet"; }
-    if (buyButton) buyButton.disabled = true;
-    if (usdtAmountInput) usdtAmountInput.disabled = true;
-    if (buyWithUsdtButton) buyWithUsdtButton.disabled = true;
-    if (cardAmountInput) cardAmountInput.disabled = true;
-    if (buyWithCardButton) buyWithCardButton.disabled = true;
+    disablePurchaseButtons("Connect wallet");
 }
+
+function enablePurchaseButtons() {
+    if (currencyAmountInput) { currencyAmountInput.disabled = false; currencyAmountInput.placeholder = "Ex: 0.5 BNB"; }
+    if (buyButton) { buyButton.disabled = false; buyButton.textContent = "BUY WITH BNB"; }
+    if (usdtAmountInput) { usdtAmountInput.disabled = false; usdtAmountInput.placeholder = "Ex: 100 USDT"; }
+    if (buyWithUsdtButton) { buyWithUsdtButton.disabled = false; buyWithUsdtButton.textContent = "BUY WITH USDT"; }
+    if (cardAmountInput) { cardAmountInput.disabled = false; cardAmountInput.placeholder = "Ex: 100 USD"; }
+    if (buyWithCardButton) { buyWithCardButton.disabled = false; buyWithCardButton.textContent = "BUY WITH CARD"; }
+}
+
+function disablePurchaseButtons(reason) {
+    if (currencyAmountInput) { currencyAmountInput.disabled = true; currencyAmountInput.placeholder = reason; }
+    if (buyButton) { buyButton.disabled = true; buyButton.textContent = reason; }
+    if (usdtAmountInput) { usdtAmountInput.disabled = true; usdtAmountInput.placeholder = reason; }
+    if (buyWithUsdtButton) { buyWithUsdtButton.disabled = true; buyWithUsdtButton.textContent = reason; }
+    if (cardAmountInput) { cardAmountInput.disabled = true; cardAmountInput.placeholder = reason; }
+    if (buyWithCardButton) { buyWithCardButton.disabled = true; buyWithCardButton.textContent = reason; }
+}
+
 
 // --- LÓGICA DA PRÉ-VENDA (Leitura de Contrato) ---
 async function updatePresaleData() {
@@ -151,14 +165,18 @@ async function updatePresaleData() {
             console.warn("Contrato não inicializado. Aguardando inicialização...");
             if (totalRaisedDisplay) totalRaisedDisplay.textContent = "Aguardando Início...";
             if (hardCapDisplay) hardCapDisplay.textContent = "Hard Cap: Carregando...";
+            disablePurchaseButtons("Sale not started");
             return;
         }
 
-        const [totalRaised, hardCap, price] = await Promise.all([
+        const [totalRaised, hardCap, price, saleStatus] = await Promise.all([ // <<< CORREÇÃO
             readOnlyContract.totalRaised(),
             readOnlyContract.hardCap(),
-            readOnlyContract.tokenPrice()
+            readOnlyContract.tokenPrice(),
+            readOnlyContract.saleActive() // <<< CORREÇÃO: LÊ O STATUS DA VENDA
         ]);
+        
+        isSaleActive = saleStatus; // <<< CORREÇÃO: ATUALIZA O OLHO VIDENTE
         
         const totalRaisedBNB = ethers.formatEther(totalRaised);
         const hardCapBNB = ethers.formatEther(hardCap);
@@ -171,10 +189,19 @@ async function updatePresaleData() {
         const oneBNB = ethers.parseEther("1");
         tokenRate = oneBNB / price;
         console.log(`Token Rate (LNR per 1 BNB): ${tokenRate}`);
+        console.log(`Sale Status (isSaleActive): ${isSaleActive}`); // <<< LOG DE BATALHA
+
+        // ATIVA OS BOTÕES SE A VENDA ESTIVER ATIVA E A CARTEIRA CONECTADA
+        if (isSaleActive && userAddress) {
+            enablePurchaseButtons();
+        } else if (!isSaleActive) {
+            disablePurchaseButtons("Sale is not active");
+        }
 
     } catch (err) { 
         console.error("Could not fetch presale data. O contrato foi inicializado?", err); 
         if (totalRaisedDisplay) totalRaisedDisplay.textContent = "Erro ao carregar dados";
+        disablePurchaseButtons("Error fetching data");
     }
 }
 
@@ -189,21 +216,31 @@ async function buyLunaro() {
 
     try {
         const value = ethers.parseEther(amount);
-        // Chama a função 'buy' do seu contrato
+        // <<< CORREÇÃO: USANDO callStatic PARA PREVER O ERRO
+        // Isso simula a transação sem custo de gás. Se ela falhar, ela vai
+        // nos dar o motivo real do "revert" do contrato!
+        await contract.buy.staticCall({ value });
+
+        // Se o callStatic passou, a transação real pode ir.
         const tx = await contract.buy({ value });
         alert("Transaction sent! Awaiting confirmation...");
         await tx.wait();
         showFeedback(purchaseSuccessModal);
         await updatePresaleData();
+
     } catch (err) {
         console.error(err);
         // Tenta extrair a mensagem de erro "Revert" do contrato
         const reason = err.reason || err.data?.message || err.message;
-        alert(`Transaction Failed: ${reason}`);
+        alert(`Transaction Failed: ${reason}`); // <<< AGORA VAI MOSTRAR O ERRO REAL
         showFeedback(purchaseFailureModal);
     } finally {
         buyButton.disabled = false;
-        buyButton.textContent = "BUY WITH BNB";
+        if (isSaleActive) {
+            buyButton.textContent = "BUY WITH BNB";
+        } else {
+            disablePurchaseButtons("Sale is not active");
+        }
         currencyAmountInput.value = '';
         if (lnrToReceiveEl) lnrToReceiveEl.textContent = '0 LNR';
     }
@@ -220,29 +257,18 @@ async function buyWithTokens() {
     buyWithUsdtButton.disabled = true;
     buyWithUsdtButton.textContent = "1. PREPARING SWAP...";
 
-    // 1. DEFINIR AS MOEDAS (Aqui você pode mudar para USDC, ETH, etc)
-    const fromToken = tokens.USDT; // O usuário PAGA com USDT
-    
-    // O contrato de pré-venda (cofre) SÓ ACEITA BNB.
-    // Então, precisamos trocar USDT -> WBNB
-    // E a 1inch vai magicamente enviar o BNB nativo para o contrato.
-    const toToken = tokens.WBNB;   
-
-    // 2. CALCULAR O VALOR (com decimais)
+    const fromToken = tokens.USDT; 
     const amountInWei = ethers.parseUnits(amount, fromToken.decimals).toString();
 
-    // 3. PREPARAR O PEDIDO PARA O BASTIÃO
     const body = {
         fromTokenAddress: fromToken.address,
-        // O 'toTokenAddress' É O NOSSO CONTRATO
         toTokenAddress: contractAddress,
         amount: amountInWei,
         fromAddress: userAddress,
-        destReceiver: userAddress // Quem recebe o LNR (o próprio usuário)
+        destReceiver: userAddress 
     };
 
     try {
-        // 4. CHAMAR O BASTIÃO (/api/swap)
         buyWithUsdtButton.textContent = "2. GETTING QUOTE...";
         const response = await fetch('/api/swap', {
             method: 'POST',
@@ -253,11 +279,15 @@ async function buyWithTokens() {
         const swapData = await response.json();
 
         if (!response.ok) {
-            throw new Error(swapData.details || swapData.error || 'Failed to get swap data from 1inch');
+            // <<< CORREÇÃO: Tenta pegar o erro do Bastião
+            let errorMsg = swapData.details || swapData.error || 'Failed to get swap data from 1inch';
+            if (errorMsg.includes("Invalid API key")) { // <<< CORREÇÃO: ERRO ESPECÍFICO
+                errorMsg = "API Key error. Contact support.";
+                console.error("ERRO FATAL: A CHAVE DA API DA 1INCH ESTÁ INVÁLIDA OU FALTANDO NA VERCEL!");
+            }
+            throw new Error(errorMsg);
         }
 
-        // 5. APROVAR A TRANSAÇÃO (Se necessário)
-        // A 1inch nos diz para qual endereço dela devemos aprovar o gasto
         const spenderAddress = swapData.tx.to;
         const allowance = await checkAllowance(fromToken.address, spenderAddress);
         
@@ -266,12 +296,11 @@ async function buyWithTokens() {
             await approveToken(fromToken.address, spenderAddress, amountInWei);
         }
 
-        // 6. EXECUTAR A TRANSAÇÃO DE SWAP
         buyWithUsdtButton.textContent = "4. EXECUTING SWAP...";
         
         const tx = {
             from: userAddress,
-            to: spenderAddress, // O endereço "proxy" da 1inch
+            to: spenderAddress, 
             data: swapData.tx.data,
             value: swapData.tx.value
         };
@@ -281,7 +310,7 @@ async function buyWithTokens() {
         await transaction.wait();
         
         showFeedback(purchaseSuccessModal);
-        await updatePresaleData(); // Atualiza a barra de progresso
+        await updatePresaleData(); 
 
     } catch (err) {
         console.error("Swap failed:", err);
@@ -289,25 +318,25 @@ async function buyWithTokens() {
         showFeedback(purchaseFailureModal);
     } finally {
         buyWithUsdtButton.disabled = false;
-        buyWithUsdtButton.textContent = "BUY WITH USDT";
+        if (isSaleActive) {
+            buyWithUsdtButton.textContent = "BUY WITH USDT";
+        } else {
+            disablePurchaseButtons("Sale is not active");
+        }
         if (usdtAmountInput) usdtAmountInput.value = '';
     }
 }
 
 // --- FUNÇÕES AUXILIARES PARA O SWAP ---
 async function checkAllowance(tokenAddress, spenderAddress) {
-    // A ABI mínima para checar "allowance"
     const minABI = ["function allowance(address owner, address spender) view returns (uint256)"];
     const tokenContract = new ethers.Contract(tokenAddress, minABI, provider);
     return await tokenContract.allowance(userAddress, spenderAddress);
 }
 
 async function approveToken(tokenAddress, spenderAddress, amount) {
-    // A ABI mínima para "approve"
     const minABI = ["function approve(address spender, uint256 amount) returns (bool)"];
     const tokenContract = new ethers.Contract(tokenAddress, minABI, signer);
-    
-    // Aprova a quantidade exata
     const approveTx = await tokenContract.approve(spenderAddress, amount);
     await approveTx.wait();
 }
@@ -324,7 +353,6 @@ function calculateLNR(inputValue, pricePerBNB) {
 }
 
 // --- FEED DE COMPRAS AO VIVO (Leitura de Eventos) ---
-// NOTA: Esta função foi desabilitada para evitar erros de RPC, mas está aqui.
 function listenForPurchases() {
     const publicProvider = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org/');
     const readOnlyContract = new ethers.Contract(contractAddress, contractABI, publicProvider);
@@ -353,6 +381,7 @@ function startCountdown() {
         if (distance < 0) {
             clearInterval(interval);
             countdownEl.innerHTML = "<span class='neon-text-green'>PRESALE ENDED</span>";
+            disablePurchaseButtons("Sale has ended");
             return;
         }
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
