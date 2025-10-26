@@ -253,7 +253,14 @@ async function buyWithTokens() {
     if (!contract || !signer) return alert("Please connect your wallet first.");
     const amount = usdtAmountInput.value;
     if (!amount || amount <= 0) return alert("Please enter a valid USDT amount.");
+// <<< PASSO 1: CALCULAR O BNB CORRESPONDENTE ANTES DE TUDO >>>
+    // (Usamos a cotação que você definiu no topo do arquivo)
+    const bnbToSpend = parseFloat(amount) / BNB_PRICE_IN_USD; 
+    if (bnbToSpend <= 0) return alert("Valor muito baixo para calcular BNB.");
 
+    // Converte o valor de BNB para WEI (18 casas decimais)
+    // Usamos toFixed(18) para evitar erros de precisão do float antes de converter
+    const bnbToSpendWei = ethers.parseEther(bnbToSpend.toFixed(18));
     buyWithUsdtButton.disabled = true;
     buyWithUsdtButton.textContent = "1. PREPARING SWAP...";
 
@@ -307,6 +314,20 @@ const body = {
         const transaction = await signer.sendTransaction(tx);
         alert("Swap sent! Awaiting confirmation...");
         await transaction.wait();
+// ================================================
+            // <<< ETAPA 2: A COMPRA REAL (ESTAVA FALTANDO) >>>
+            // ================================================
+            buyWithUsdtButton.textContent = "5. BUYING LNR...";
+            alert("Swap (Etapa 1/2) concluída! Agora confirme a compra (Etapa 2/2).");
+
+            // O 'contract' global já está conectado ao signer.
+            // A função 'buy' é a mesma usada pelo botão de BNB.
+            const buyTx = await contract.buy({
+                value: bnbToSpendWei // Envia o BNB que calculamos no Passo 1
+            });
+
+            await buyTx.wait();
+            // ================================================
         
         showFeedback(purchaseSuccessModal);
         await updatePresaleData(); 
