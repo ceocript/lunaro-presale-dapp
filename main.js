@@ -260,14 +260,13 @@ async function buyWithTokens() {
     const fromToken = tokens.USDT; 
     const amountInWei = ethers.parseUnits(amount, fromToken.decimals).toString();
 
-    const body = {
-        fromTokenAddress: fromToken.address,
-        toTokenAddress: contractAddress,
-        amount: amountInWei,
-        fromAddress: userAddress,
-        destReceiver: userAddress 
-    };
-
+const body = {
+    fromTokenAddress: String(fromToken.address),
+    toTokenAddress: String(contractAddress),
+    amount: String(amountInWei), // <<< GARANTE QUE A QUANTIA É UMA STRING
+    fromAddress: String(userAddress),
+    destReceiver: String(userAddress) 
+};
     try {
         buyWithUsdtButton.textContent = "2. GETTING QUOTE...";
         const response = await fetch('/api/swap', {
