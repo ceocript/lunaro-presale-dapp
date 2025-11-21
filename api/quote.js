@@ -1,5 +1,5 @@
-// pages/api/swap.js
-// BACK-END SEGURO (Cofre) - Para a transação de SWAP
+// pages/api/quote.js
+// BACK-END SEGURO (Oráculo) - Apenas para preview de cotação
 
 import axios from 'axios';
 
@@ -15,21 +15,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Pegamos todos os dados, incluindo slippage
-    const { fromTokenAddress, toTokenAddress, amount, fromAddress, slippage, destReceiver } = req.body;
+    const { fromTokenAddress, toTokenAddress, amount } = req.body;
 
     const config = {
       headers: { 'Authorization': `Bearer ${ONEINCH_API_KEY}` },
-      params: { fromTokenAddress, toTokenAddress, amount, fromAddress, slippage, destReceiver }
+      params: { fromTokenAddress, toTokenAddress, amount }
     };
 
-    const response = await axios.get(`${ONEINCH_BASE_URL}/swap`, config);
-
-    // Retorna o objeto de transação (tx)
-    res.status(200).json(response.data);
+    const response = await axios.get(`${ONEINCH_BASE_URL}/quote`, config);
+    
+    // Retorna APENAS o valor
+    res.status(200).json({ toAmount: response.data.toAmount });
 
   } catch (err) {
     const errorData = err.response?.data || { message: err.message };
-    res.status(500).json({ error: 'Falha ao obter dados do swap', details: errorData });
+    res.status(500).json({ error: 'Falha ao obter cotação', details: errorData });
   }
 }

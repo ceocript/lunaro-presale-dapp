@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server.js",
+    "dev:all": "concurrently -k -n SERVER,WEB -c blue,green \"npm:server\" \"npm:dev\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -12,11 +14,34 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@coinbase/cbpay-js": "^2.4.0",
+    "@moonpay/moonpay-js": "^0.7.5",
     "@tailwindcss/vite": "^4.1.15",
     "@walletconnect/ethereum-provider": "^2.22.4",
-    "axios": "^1.12.2",
+    "axios": "^1.13.2",
+    "concurrently": "^9.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
+    "express": "^5.1.0",
+    "i18next": "^25.6.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
+    "node-fetch": "^3.3.2",
     "tailwindcss": "^4.1.15",
     "web3modal": "^1.9.12"
-  }
+  },
+  "description": "",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceocript/lunaro-presale-dapp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ceocript/lunaro-presale-dapp/issues"
+  },
+  "homepage": "https://github.com/ceocript/lunaro-presale-dapp#readme"
 }
