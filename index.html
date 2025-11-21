@@ -246,43 +246,44 @@
                 </button>
               </div>
 
-          <!-- TAB TOKEN -->
-          <div id="tab-token" class="tab-content hidden mt-6">
-            <!-- Cards dos tokens (preenchidos via main.js) -->
-            <div id="tokenCardsContainer" class="grid grid-cols-2 gap-3 mb-4">
-              <!-- Preenchido via main.js -->
-            </div>
-          
-            <h3 class="text-2xl neon-text-blue mb-4" data-i18n="token_tab_title">
-              Buy with Token
-            </h3>
-          
-            <p class="text-gray-400 mb-6 text-sm" data-i18n="token_tab_desc">
-              Selecione um token e o sistema fará o swap para BNB e concluirá a compra.
-              <br />
-              <span class="text-xs text-purple-300 block mt-1">
-                <strong>Importante:</strong> para comprar com USDT, USDC, BUSD, DAI ou outros tokens,
-                você <strong>precisa ter um pouco de BNB na carteira</strong> para pagar as taxas de gás da rede.
-              </span>
-            </p>
-          
-            <div class="mb-4 text-left">
-              <label for="tokenAmount" class="block text-gray-300 mb-2">
-                Amount to buy:
-              </label>
-              <input type="number" id="tokenAmount"
-                class="w-full p-3 bg-gray-800 border border-neon-blue text-neon-blue rounded-lg" placeholder="e.g., 500" />
-            </div>
-          
-            <p class="text-lg text-gray-300 mb-6">
-              You will receive Approx.:
-              <span id="tokenLnrToReceive" class="neon-text-blue font-bold">0 LNR</span>
-            </p>
-          
-            <button id="buyWithTokenButton" class="w-full neon-button px-8 py-4 text-xl font-bold">
-              BUY WITH TOKEN
-            </button>
+        <!-- TAB TOKEN -->
+        <div id="tab-token" class="tab-content hidden mt-6">
+          <!-- Cards dos tokens (preenchidos via main.js) -->
+          <div id="tokenCardsContainer" class="grid grid-cols-2 gap-3 mb-4">
+            <!-- Preenchido via main.js -->
           </div>
+        
+          <h3 class="text-2xl neon-text-blue mb-4" data-i18n="token_tab_title">
+            Buy with Token
+          </h3>
+        
+          <p class="text-gray-400 mb-6 text-sm" data-i18n="token_tab_desc">
+            Selecione um token e o sistema fará o swap para BNB e concluirá a compra.
+            <br />
+            <span class="text-xs text-purple-300 block mt-1">
+              <strong>Importante:</strong> para comprar com USDT, USDC, BUSD, DAI ou outros tokens,
+              você <strong>precisa ter um pouco de BNB na carteira</strong> para pagar as taxas de gás da rede.
+            </span>
+          </p>
+        
+          <div class="mb-4 text-left">
+            <label for="tokenAmount" class="block text-gray-300 mb-2">
+              Amount to buy:
+            </label>
+            <input type="number" id="tokenAmount"
+              class="w-full p-3 bg-gray-800 border border-neon-blue text-neon-blue rounded-lg" placeholder="e.g., 500" />
+          </div>
+        
+          <p class="text-lg text-gray-300 mb-6">
+            You will receive Approx.:
+            <span id="tokenLnrToReceive" class="neon-text-blue font-bold">0 LNR</span>
+          </p>
+        
+          <button id="buyWithTokenButton" class="w-full neon-button px-8 py-4 text-xl font-bold">
+            BUY WITH TOKEN
+          </button>
+        </div>
+
 
               <!-- TAB CARD -->
               <div id="tab-card" class="tab-content hidden mt-6">
