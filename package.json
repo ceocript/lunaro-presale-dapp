@@ -19,6 +19,7 @@
     "@moonpay/moonpay-js": "^0.7.5",
     "@tailwindcss/vite": "^4.1.15",
     "@walletconnect/ethereum-provider": "^2.22.4",
+    "@walletconnect/web3-provider": "^1.8.0",
     "axios": "^1.13.2",
     "concurrently": "^9.1.2",
     "cors": "^2.8.5",

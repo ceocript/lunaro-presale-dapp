@@ -13,7 +13,7 @@ import {
 // 👇 Coinbase Onramp (cbpay-js)
 import { initOnRamp } from "@coinbase/cbpay-js";
 
-// 👇 Suporte a múltiplas carteiras (desktop + mobile) – apenas Coinbase Wallet (sem WalletConnect)
+// 👇 Coinbase Wallet SDK (para se conectar como carteira via Web3Modal)
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
 // ========================================================================
@@ -29,6 +29,10 @@ const DISPLAY_LNR_PRICE_USD = 0.0275; // $0.0275 por LNR na presale
 const STAGE_2_THRESHOLD_PERCENT = 50; // depois de 50% da hard cap vira Stage 2
 // AUTO BUY (BNB detect → auto compra LNR)
 window.initialBNBBalance = null;
+
+const WALLETCONNECT_PROJECT_ID =
+  import.meta.env.VITE_WALLETCONNECT_ID ||
+  "32ed3ea3bca55289803b2a1972da8a07";
 
 const ONEINCH_API_KEY =
   import.meta.env.VITE_1INCH_API_KEY || "3ihHZTcYwk4NoMUnIBPdYwBJM1kxyWHr";
@@ -100,8 +104,7 @@ let tokenRate = BigInt(0); // LNR por 1 BNB
 let isSaleActive = false;
 
 // Tokens que devem aparecer na aba de Token
-const ALLOWED_TOKEN_SYMBOLS = ["USDT", "USDC", "MATIC", "SOL", "ETH", "BTCB", "DAI"];
-
+const ALLOWED_TOKEN_SYMBOLS = ["USDT", "USDC", "MATIC", "SOL", "ETH", "BTC", "DAI"];
 
 // ========================================================================
 // UTIL DOM
@@ -167,18 +170,18 @@ setInterval(fetchBNBPrice, 60000);
 // WEB3MODAL SETUP (multi-wallet, mobile + desktop)
 // ========================================================================
 
-// Aqui definimos os providers que o Web3Modal vai suportar
+// ✅ Configuração correta dos providers
 const providerOptions = {
   // 1) Carteiras injetadas (MetaMask, Trust, Rabby, Brave, Bitget, etc.)
   injected: {
-    package: null,
     display: {
       name: "Browser Wallet",
       description: "MetaMask, Trust, Rabby, Brave, Bitget e outras.",
     },
+    package: null,
   },
 
-  // 2) Coinbase Wallet (via walletlink)
+  // 2) Coinbase Wallet via WalletLink (funciona em desktop e mobile)
   walletlink: {
     package: CoinbaseWalletSDK,
     options: {
