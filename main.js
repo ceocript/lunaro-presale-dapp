@@ -13,6 +13,9 @@ import {
 // 👇 Coinbase Onramp (cbpay-js)
 import { initOnRamp } from "@coinbase/cbpay-js";
 
+// 👇 Suporte a múltiplas carteiras (desktop + mobile) – apenas Coinbase Wallet (sem WalletConnect)
+import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
+
 // ========================================================================
 // CONFIGURAÇÃO GERAL (.env para chaves)
 // ========================================================================
@@ -26,10 +29,6 @@ const DISPLAY_LNR_PRICE_USD = 0.0275; // $0.0275 por LNR na presale
 const STAGE_2_THRESHOLD_PERCENT = 50; // depois de 50% da hard cap vira Stage 2
 // AUTO BUY (BNB detect → auto compra LNR)
 window.initialBNBBalance = null;
-
-const WALLETCONNECT_PROJECT_ID =
-  import.meta.env.VITE_WALLETCONNECT_ID ||
-  "32ed3ea3bca55289803b2a1972da8a07";
 
 const ONEINCH_API_KEY =
   import.meta.env.VITE_1INCH_API_KEY || "3ihHZTcYwk4NoMUnIBPdYwBJM1kxyWHr";
@@ -100,6 +99,10 @@ let provider, signer, userAddress, contract;
 let tokenRate = BigInt(0); // LNR por 1 BNB
 let isSaleActive = false;
 
+// Tokens que devem aparecer na aba de Token
+const ALLOWED_TOKEN_SYMBOLS = ["USDT", "USDC", "MATIC", "SOL", "ETH", "BTCB", "DAI"];
+
+
 // ========================================================================
 // UTIL DOM
 // ========================================================================
@@ -161,12 +164,29 @@ fetchBNBPrice();
 setInterval(fetchBNBPrice, 60000);
 
 // ========================================================================
-// WEB3MODAL SETUP
+// WEB3MODAL SETUP (multi-wallet, mobile + desktop)
 // ========================================================================
+
+// Aqui definimos os providers que o Web3Modal vai suportar
 const providerOptions = {
-  walletconnect: {
-    package: true, // se der erro, substituir por WalletConnectProvider
-    options: { projectId: WALLETCONNECT_PROJECT_ID, chains: [56] },
+  // 1) Carteiras injetadas (MetaMask, Trust, Rabby, Brave, Bitget, etc.)
+  injected: {
+    package: null,
+    display: {
+      name: "Browser Wallet",
+      description: "MetaMask, Trust, Rabby, Brave, Bitget e outras.",
+    },
+  },
+
+  // 2) Coinbase Wallet (via walletlink)
+  walletlink: {
+    package: CoinbaseWalletSDK,
+    options: {
+      appName: "Lunaro Presale",
+      rpc: RPC_URL,
+      chainId: 56,
+      darkMode: true,
+    },
   },
 };
 
@@ -295,6 +315,7 @@ if (presalePriceEl) {
 async function connectWallet() {
   try {
     const instance = await web3Modal.connect();
+
     instance.on("accountsChanged", () => window.location.reload());
     instance.on("chainChanged", () => window.location.reload());
     instance.on("disconnect", () => disconnect());
@@ -681,7 +702,6 @@ async function buyWithTokens() {
   }
 }
 
-
 // ========================================================================
 // CÁLCULOS UI
 // ========================================================================
@@ -705,7 +725,11 @@ async function populateTokenCards() {
   tokenCardsContainer.innerHTML = "";
 
   const tokenEntries = Object.entries(tokens).filter(([sym, cfg]) => {
-    return cfg.address && !["BNB", "WBNB"].includes(sym);
+    return (
+      cfg.address &&
+      !["BNB", "WBNB"].includes(sym) &&
+      ALLOWED_TOKEN_SYMBOLS.includes(sym)
+    );
   });
 
   let balances = [];

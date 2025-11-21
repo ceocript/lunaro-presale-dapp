@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@coinbase/cbpay-js": "^2.4.0",
+    "@coinbase/wallet-sdk": "^4.3.7",
     "@moonpay/moonpay-js": "^0.7.5",
     "@tailwindcss/vite": "^4.1.15",
     "@walletconnect/ethereum-provider": "^2.22.4",
