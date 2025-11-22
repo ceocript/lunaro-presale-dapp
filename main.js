@@ -1,4 +1,4 @@
-// FRONT-END INTERAÇÃO - Presale Lunaro Token (LNR) com múltiplas opções de compra
+// FRONT-END INTERAÇÃO - Presale Lunaro Token (LNR) com múltiplas opções de compra 
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import axios from "axios";
@@ -10,10 +10,10 @@ import {
   defaultSlippage,
 } from "./constants/index.js";
 
-// 👇 Coinbase Onramp (cbpay-js)
+// 👇 Coinbase Onramp (cbpay-js) – continua importado, mas não usamos no botão CARD por causa da região
 import { initOnRamp } from "@coinbase/cbpay-js";
 
-// 👇 Coinbase Wallet SDK (para se conectar como carteira via Web3Modal)
+// 👇 Suporte a múltiplas carteiras (desktop + mobile)
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
 // ========================================================================
@@ -55,6 +55,12 @@ const NATIVE_ADDRESS =
 const COINBASE_APP_ID =
   import.meta.env.VITE_COINBASE_APP_ID ||
   "49a51074-ac3c-4488-9793-f1d6572ed3fe";
+
+// Transak
+const TRANSAK_API_KEY =
+  import.meta.env.VITE_TRANSAK_API_KEY || "SUA_API_KEY_DA_TRANSAK";
+const TRANSAK_ENV =
+  import.meta.env.VITE_TRANSAK_ENVIRONMENT || "STAGING";
 
 // ========================================================================
 // ABI MÍNIMO ERC20 (PARA ALLOWANCE/APPROVE)
@@ -170,9 +176,10 @@ setInterval(fetchBNBPrice, 60000);
 // WEB3MODAL SETUP (multi-wallet, mobile + desktop)
 // ========================================================================
 
-// ✅ Configuração correta dos providers
+// Aqui usamos apenas:
+// - injected (MetaMask, Brave, Rabby, Trust via dApp browser, etc.)
+// - coinbasewallet (extensão / app da Coinbase)
 const providerOptions = {
-  // 1) Carteiras injetadas (MetaMask, Trust, Rabby, Brave, Bitget, etc.)
   injected: {
     display: {
       name: "Browser Wallet",
@@ -180,9 +187,7 @@ const providerOptions = {
     },
     package: null,
   },
-
-  // 2) Coinbase Wallet via WalletLink (funciona em desktop e mobile)
-  walletlink: {
+  coinbasewallet: {
     package: CoinbaseWalletSDK,
     options: {
       appName: "Lunaro Presale",
@@ -276,7 +281,7 @@ function disablePurchaseButtons(reason) {
 }
 
 function updateUIOnConnect(address) {
-  // Deixa o endereço disponível pro widget de terceiros (Coinbase, etc.)
+  // Deixa o endereço disponível pro widget de terceiros (Coinbase, Transak, etc.)
   window.userWallet = address;
 
   if (walletStatusEl) {
@@ -966,7 +971,7 @@ function startCountdown() {
 }
 
 // ========================================================================
-// COINBASE ONRAMP (CARD TAB) - via backend com sessionToken
+// COINBASE ONRAMP (CARD TAB) – CONTINUA NO CÓDIGO, MAS NÃO USAMOS NO BOTÃO
 // ========================================================================
 async function createCoinbaseSessionOnBackend(amount, walletAddress) {
   if (!walletAddress) {
@@ -1086,6 +1091,61 @@ async function openCoinbaseOnramp(usdValue = 50) {
 }
 
 // ========================================================================
+// TRANSAK ONRAMP (CARD TAB) – USADO NO BOTÃO "BUY WITH CARD"
+// ========================================================================
+function openTransakOnramp(usdValue = 50) {
+  if (!userAddress) {
+    alert("Connect your wallet first.");
+    return;
+  }
+
+  if (!window.TransakSDK) {
+    alert("Payment widget not loaded. Tente recarregar a página.");
+    return;
+  }
+
+  if (!TRANSAK_API_KEY || TRANSAK_API_KEY === "SUA_API_KEY_DA_TRANSAK") {
+    alert("Transak não está configurado (API KEY faltando).");
+    return;
+  }
+
+  const transak = new window.TransakSDK({
+    apiKey: TRANSAK_API_KEY,
+    environment: TRANSAK_ENV, // "STAGING" ou "PRODUCTION"
+    // Você pode trocar para BRL se quiser:
+    // fiatCurrency: "BRL",
+    fiatCurrency: "USD",
+    defaultFiatAmount: usdValue,
+    cryptoCurrencyCode: "BNB",
+    network: "bsc",
+    walletAddress: userAddress,
+    themeColor: "#8B5CF6",
+    email: "juniorcaeb@gmail.com",
+    hostURL: window.location.origin,
+    widgetHeight: "650px",
+    widgetWidth: "450px",
+    disableWalletAddressForm: true,
+  });
+
+  transak.init();
+
+  transak.on(transak.ALL_EVENTS, (data) => {
+    console.log("Transak event:", data);
+  });
+
+  transak.on("TRANSAK_ORDER_SUCCESSFUL", (data) => {
+    console.log("✅ Transak order successful:", data);
+    alert(
+      "Pagamento com cartão/fiat criado com sucesso! Quando o BNB cair na sua carteira, o sistema pode comprar LNR automaticamente (auto-buy)."
+    );
+  });
+
+  transak.on("TRANSAK_WIDGET_CLOSE", () => {
+    console.log("Transak widget fechado");
+  });
+}
+
+// ========================================================================
 // INICIALIZAÇÃO
 // ========================================================================
 document.addEventListener("DOMContentLoaded", () => {
@@ -1157,7 +1217,8 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Minimum purchase: $5 USD");
         return;
       }
-      openCoinbaseOnramp(usdValue);
+      // AGORA: usa Transak, não Coinbase, pra funcionar no Brasil
+      openTransakOnramp(usdValue);
     });
   }
 

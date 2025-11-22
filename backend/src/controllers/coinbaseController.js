@@ -8,61 +8,87 @@ export async function createOnrampOrder(req, res) {
   try {
     const {
       destinationAddress,
-      amountInfo, // { amount: "100", currency: "USD" }
-      userInfo,   // { email: "...", phone: "...", country?: "BR" }
+      amountInfo,
+      userInfo,
       network = "base",
     } = req.body;
 
-    if (!destinationAddress || !amountInfo || !userInfo) {
-      return res.status(400).json({ error: "Dados incompletos." });
+    if (!destinationAddress || !amountInfo?.amount || !amountInfo?.currency) {
+      return res.status(400).json({
+        message: "destinationAddress e amountInfo (amount, currency) são obrigatórios.",
+      });
     }
 
-    const requestPath = coinbaseConfig.ordersPath || "/platform/v2/onramp/orders";
-    const url = `${coinbaseConfig.baseUrl}${requestPath}`;
+    const nowIso = new Date().toISOString();
+    const partnerUserRef = `sandbox-user-${crypto.randomUUID()}`;
 
-    const nowISO = new Date().toISOString();
+    const payload = {
+      purchaseCurrency: "USDC",
+      paymentCurrency: amountInfo.currency || "USD",
+      paymentAmount: amountInfo.amount,
+      destinationAddress,
+      destinationNetwork: network,
+      paymentMethod: "GUEST_CHECKOUT_APPLE_PAY",
+      email: userInfo?.email || "user@example.com",
+      phoneNumber: userInfo?.phone || "+15555555555",
+      acceptedTerms: nowIso,
+      phoneNumberVerifiedAt: nowIso,
+      agreementAcceptedAt: nowIso,
+      partnerUserRef,
+    };
 
-    // 🔥 AGORA EM camelCase, como a API pede
- const body = {
-  purchaseCurrency: "USDC",
-  paymentCurrency: amountInfo.currency || "USD",
-  paymentAmount: amountInfo.amount,
+    console.log("📡 Criando Ordem Onramp:", payload);
 
-  destinationAddress,
-  destinationNetwork: network,
+    const client = await getCoinbaseClient();
+    const response = await client.post("/onramp-orders", payload);
+    const data = response.data;
 
-  paymentMethod: "GUEST_CHECKOUT_APPLE_PAY",
+    console.log("✅ Ordem Onramp criada:", data);
 
-  email: userInfo.email,
-  phoneNumber: userInfo.phone,
+    // Se vier um onrampUrl ou parecido, já devolve pro front
+    if (data && (data.onrampUrl || data.url)) {
+      return res.json({
+        onrampUrl: data.onrampUrl || data.url,
+        raw: data,
+      });
+    }
 
-  acceptedTerms: nowISO,
-  phoneNumberVerifiedAt: nowISO,
-  agreementAcceptedAt: nowISO,
+    // Se vier um sessionToken para o widget cbpay-js
+    if (data && data.sessionToken) {
+      return res.json({
+        sessionToken: data.sessionToken,
+        raw: data,
+      });
+    }
 
-  // 👇 Campo que o schema está pedindo
-  partnerUserRef: `sandbox-user-${uuidv4()}`,
-};
-
-
-    console.log("📡 Criando Ordem Onramp:", body);
-
-    const token = await generateCdpToken("POST", requestPath);
-
-    const response = await axios.post(url, body, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+    // Fallback: devolve tudo que veio
+    return res.json({
+      message: "Ordem Onramp criada, mas sem sessionToken/onrampUrl explícitos.",
+      raw: data,
     });
-
-    console.log("✅ Ordem Onramp Criada:", response.data);
-    return res.json(response.data);
   } catch (error) {
-    console.error("❌ Erro Onramp:", error?.response?.data || error.message);
-    return res.status(error?.response?.status || 500).json({
-      error: "Erro ao criar ordem Onramp",
-      details: error?.response?.data || error.message,
+    console.error("❌ Erro Onramp:", error?.response?.data || error);
+
+    const status = error.response?.status || 500;
+    const errorData = error.response?.data || {};
+    const errorType =
+      errorData.errorType || errorData.error || errorData.code;
+
+    // 🔥 CASO ESPECÍFICO: região não permitida pra guest onramp
+    if (errorType === "guest_region_forbidden") {
+      return res.status(403).json({
+        code: "GUEST_REGION_FORBIDDEN",
+        message:
+          "Guest onramp transactions are not allowed in the user's region.",
+        docs: errorData.errorLink,
+      });
+    }
+
+    // Outros erros genéricos
+    return res.status(status).json({
+      code: errorType || "ONRAMP_ERROR",
+      message: "Erro ao criar ordem Onramp na Coinbase.",
+      details: errorData,
     });
   }
 }
