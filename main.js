@@ -1,7 +1,9 @@
-// FRONT-END INTERAÇÃO - Presale Lunaro Token (LNR) com múltiplas opções de compra 
+// FRONT-END INTERAÇÃO - Presale Lunaro Token (LNR) com múltiplas opções de compra
 import { ethers } from "ethers";
-import Web3Modal from "web3modal";
 import axios from "axios";
+import { EthereumProvider } from "@walletconnect/ethereum-provider";
+import { initOnRamp } from "@coinbase/cbpay-js";
+
 import {
   contractAddress,
   contractABI,
@@ -46,16 +48,19 @@ const ONEINCH_BASE_URL = "https://api.1inch.dev/swap/v6.0/56";
 const NATIVE_ADDRESS =
   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // Endereço 1inch para BNB nativo
 
-// Transak
-const TRANSAK_API_KEY =
-  import.meta.env.VITE_TRANSAK_API_KEY || "SUA_API_KEY_DA_TRANSAK";
-const TRANSAK_ENV =
-  import.meta.env.VITE_TRANSAK_ENVIRONMENT || "STAGING";
+// Coinbase Onramp
+const COINBASE_APP_ID =
+  import.meta.env.VITE_COINBASE_APP_ID ||
+  "49a51074-ac3c-4488-9793-f1d6572ed3fe";
+
+// Detectar mobile (pra decidir quando forçar WalletConnect)
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+  navigator.userAgent
+);
 
 // ========================================================================
 // ABI MÍNIMO ERC20 (PARA ALLOWANCE/APPROVE)
 // ========================================================================
-
 const ERC20_MIN_ABI = [
   {
     constant: true,
@@ -96,18 +101,25 @@ const ERC20_MIN_ABI = [
 // ========================================================================
 // ESTADO GLOBAL
 // ========================================================================
-
 let provider, signer, userAddress, contract;
 let tokenRate = BigInt(0); // LNR por 1 BNB
 let isSaleActive = false;
+let wcProvider = null; // WalletConnect v2 provider
 
 // Tokens que devem aparecer na aba de Token
-const ALLOWED_TOKEN_SYMBOLS = ["USDT", "USDC", "MATIC", "SOL", "ETH", "BTCB", "DAI"];
+const ALLOWED_TOKEN_SYMBOLS = [
+  "USDT",
+  "USDC",
+  "MATIC",
+  "SOL",
+  "ETH",
+  "BTC",
+  "DAI",
+];
 
 // ========================================================================
 // UTIL DOM
 // ========================================================================
-
 const el = (id) => document.getElementById(id);
 
 const connectWalletBtn = el("connectWalletBtn");
@@ -143,7 +155,7 @@ const tokenLnrToReceiveEl =
 const buyWithTokenButton =
   el("buyWithTokenButton") || el("buyWithUsdtButton");
 const tokenCardsContainer = document.getElementById("tokenCardsContainer");
-let selectedTokenSymbol = null; // USDT / USDC / MATIC / SOL / ETH / BTCB / DAI
+let selectedTokenSymbol = null; // USDT / BUSD / USDC / MATIC / ETH
 
 // Cartão
 const cardAmountInput = el("cardAmount");
@@ -153,7 +165,6 @@ const buyWithCardButton = el("buyWithCardButton");
 // ========================================================================
 // PREÇOS DINÂMICOS
 // ========================================================================
-
 async function fetchBNBPrice() {
   try {
     const res = await axios.get(COINGECKO_API);
@@ -167,31 +178,44 @@ fetchBNBPrice();
 setInterval(fetchBNBPrice, 60000);
 
 // ========================================================================
-// WEB3MODAL SETUP (multi-wallet, mobile + desktop)
+// WALLETCONNECT V2 - EthereumProvider
 // ========================================================================
+async function getWalletConnectProvider() {
+  if (wcProvider) return wcProvider;
 
-// Só injected: MetaMask, Trust, Rabby, Brave, Bitget, OKX, etc.
-// No celular: abrir o site pelo navegador DApp da própria carteira.
-const providerOptions = {
-  injected: {
-    package: null,
-    display: {
-      name: "Browser Wallet",
-      description: "MetaMask, Trust, Rabby, Brave, Bitget e outras.",
+  wcProvider = await EthereumProvider.init({
+    projectId: WALLETCONNECT_PROJECT_ID,
+    showQrModal: true, // exibe o modal oficial (QR + lista de carteiras + deep-link)
+    chains: [56], // BNB Chain
+    methods: [
+      "eth_sendTransaction",
+      "eth_signTransaction",
+      "eth_sign",
+      "personal_sign",
+      "eth_signTypedData",
+    ],
+    events: ["chainChanged", "accountsChanged", "disconnect"],
+    rpcMap: {
+      56: RPC_URL,
     },
-  },
-};
+    metadata: {
+      name: "Lunaro Presale",
+      description: "Lunaro (LNR) official multi-chain presale dApp.",
+      url: window.location.origin,
+      icons: ["/logo.png"], // garante que exista /logo.png no public/
+    },
+  });
 
-const web3Modal = new Web3Modal({
-  cacheProvider: true,
-  providerOptions,
-  theme: "dark",
-});
+  wcProvider.on("accountsChanged", () => window.location.reload());
+  wcProvider.on("chainChanged", () => window.location.reload());
+  wcProvider.on("disconnect", () => disconnect());
+
+  return wcProvider;
+}
 
 // ========================================================================
 // UI HELPERS (feedback, abas, botões)
 // ========================================================================
-
 function showFeedback(modalElement) {
   if (modalElement) modalElement.classList.remove("hidden");
   setTimeout(() => modalElement && modalElement.classList.add("hidden"), 3000);
@@ -266,7 +290,6 @@ function disablePurchaseButtons(reason) {
 }
 
 function updateUIOnConnect(address) {
-  // Deixa o endereço disponível pro widget de terceiros (Transak, etc.)
   window.userWallet = address;
 
   if (walletStatusEl) {
@@ -303,18 +326,29 @@ if (presalePriceEl) {
 }
 
 // ========================================================================
-// WALLET CONEXÃO
+// WALLET CONEXÃO (injetada + WalletConnect v2)
 // ========================================================================
-
-async function connectWallet() {
+async function connectWallet(useWalletConnect = false) {
   try {
-    const instance = await web3Modal.connect();
+    let baseProvider;
 
-    instance.on("accountsChanged", () => window.location.reload());
-    instance.on("chainChanged", () => window.location.reload());
-    instance.on("disconnect", () => disconnect());
+    // Desktop ou mobile com provider injetado (Metamask browser, Brave, etc.)
+    if (!useWalletConnect && window.ethereum) {
+      baseProvider = window.ethereum;
+      await baseProvider.request({ method: "eth_requestAccounts" });
 
-    provider = new ethers.BrowserProvider(instance);
+      if (baseProvider.on) {
+        baseProvider.on("accountsChanged", () => window.location.reload());
+        baseProvider.on("chainChanged", () => window.location.reload());
+        baseProvider.on("disconnect", () => disconnect());
+      }
+    } else {
+      // Mobile Chrome / Safari sem provider → WalletConnect v2 com modal + deep-link
+      baseProvider = await getWalletConnectProvider();
+      await baseProvider.connect(); // exibe o modal brabo
+    }
+
+    provider = new ethers.BrowserProvider(baseProvider);
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
     contract = new ethers.Contract(contractAddress, contractABI, signer);
@@ -325,18 +359,27 @@ async function connectWallet() {
     const network = await provider.getNetwork();
     if (network.chainId !== 56n) {
       alert("Por favor, mude para BNB Chain!");
-      return disconnect();
+      await disconnect();
+      return;
     }
 
     updateUIOnConnect(userAddress);
   } catch (error) {
     console.error("Erro na conexão:", error);
-    alert(`Falha: ${error.message}`);
+    alert(`Falha: ${error.message || error}`);
   }
 }
 
 async function disconnect() {
-  await web3Modal.clearCachedProvider();
+  try {
+    if (wcProvider) {
+      await wcProvider.disconnect();
+      wcProvider = null;
+    }
+  } catch (e) {
+    console.warn("Erro ao desconectar WalletConnect:", e);
+  }
+
   provider = null;
   signer = null;
   userAddress = null;
@@ -347,7 +390,6 @@ async function disconnect() {
 // ========================================================================
 // PRESALE DATA UPDATE (DÓLAR + STAGE + LABEL BARRA)
 // ========================================================================
-
 async function updatePresaleData() {
   const publicProvider = new ethers.JsonRpcProvider(RPC_URL);
   const readOnlyContract = new ethers.Contract(
@@ -424,7 +466,6 @@ async function updatePresaleData() {
 // ========================================================================
 // AUTO BUY → Detecta BNB novo na wallet (ex: via onramp / bridge)
 // ========================================================================
-
 async function checkAutoBuy() {
   if (!window.initialBNBBalance || !userAddress || !provider || !contract)
     return;
@@ -434,11 +475,7 @@ async function checkAutoBuy() {
     const diff = newBalance - window.initialBNBBalance;
 
     if (diff > 0n) {
-      console.log(
-        "🟢 Detectado BNB novo:",
-        ethers.formatEther(diff),
-        "BNB"
-      );
+      console.log("🟢 Detectado BNB novo:", ethers.formatEther(diff), "BNB");
 
       // ignora poeira < 0.00001 BNB
       if (diff < ethers.parseEther("0.00001")) {
@@ -469,7 +506,6 @@ async function checkAutoBuy() {
 // ========================================================================
 // COMPRA COM BNB DIRETO
 // ========================================================================
-
 async function buyLunaro() {
   if (!contract) return alert("Conecte sua wallet primeiro.");
 
@@ -509,7 +545,6 @@ async function buyLunaro() {
 // ========================================================================
 // HELPER FUNCTIONS FOR 1INCH SWAPS (APPROVE/ALLOWANCE)
 // ========================================================================
-
 async function checkAllowance(tokenAddress, spenderAddress) {
   const tokenContract = new ethers.Contract(
     tokenAddress,
@@ -535,7 +570,6 @@ async function approveToken(tokenAddress, spenderAddress, amount) {
 // ========================================================================
 // SWAP VIA 1INCH → TOKEN ⇒ BNB (Nativo) NA BSC
 // ========================================================================
-
 async function swapTokenForBNB(tokenAddress, humanAmount) {
   if (!signer || !userAddress) {
     throw new Error("Conecte sua wallet antes de usar o swap.");
@@ -556,15 +590,14 @@ async function swapTokenForBNB(tokenAddress, humanAmount) {
 
   console.log("🔁 Chamando 1inch swap API...");
 
-  // 4) Monta chamada pro endpoint /swap da 1inch (BSC = chainId 56)
   const url = `${ONEINCH_BASE_URL}/swap`;
 
   const params = {
-    src: tokenAddress, // token de origem (USDT, USDC, etc.)
+    src: tokenAddress,
     dst: NATIVE_ADDRESS, // BNB nativo
     amount: amountWei.toString(),
     from: userAddress,
-    slippage: defaultSlippage, // 1.5% (do seu constants)
+    slippage: defaultSlippage,
     disableEstimate: false,
   };
 
@@ -634,7 +667,6 @@ async function swapTokenForBNB(tokenAddress, humanAmount) {
 // ========================================================================
 // COMPRA COM OUTROS TOKENS (TOKEN TAB)
 // ========================================================================
-
 async function buyWithTokens() {
   if (!contract || !userAddress) {
     return alert("Conecte sua wallet primeiro.");
@@ -649,16 +681,14 @@ async function buyWithTokens() {
 
   const sym = selectedTokenSymbol || "USDT";
 
-  // 🔹 Mínimo para stablecoins (~$2)
   if (["USDT", "USDC", "BUSD", "DAI"].includes(sym) && amountNum < 2) {
     return alert("Minimum purchase is 2 units for stablecoins (≈ $2).");
   }
 
-  // 🔹 Checar se tem BNB para pagar gas quando usar outros tokens
   if (!["BNB", "WBNB"].includes(sym)) {
     try {
       const bnbBalance = await provider.getBalance(userAddress);
-      const minGasBNB = ethers.parseEther("0.0005"); // ~0.0005 BNB para gas
+      const minGasBNB = ethers.parseEther("0.0005");
 
       if (bnbBalance < minGasBNB) {
         return alert(
@@ -676,14 +706,11 @@ async function buyWithTokens() {
   buyWithTokenButton.textContent = "PROCESSANDO SWAP...";
 
   try {
-    // Faz o swap do token → BNB via 1inch
     const bnbReceived = await swapTokenForBNB(selectedToken, amountNum);
     const bnbToSpendWei = bnbReceived;
 
-    // Testa se o contrato aceita esse valor
     await contract.buy.staticCall({ value: bnbToSpendWei });
 
-    // Compra LNR com o BNB recebido
     const tx = await contract.buy({ value: bnbToSpendWei });
     alert("Transação enviada! Aguardando confirmação...");
     await tx.wait();
@@ -705,7 +732,6 @@ async function buyWithTokens() {
 // ========================================================================
 // CÁLCULOS UI
 // ========================================================================
-
 async function getTokenDecimals(tokenAddress) {
   const publicProvider = new ethers.JsonRpcProvider(RPC_URL);
   const token = new ethers.Contract(tokenAddress, ERC20_MIN_ABI, publicProvider);
@@ -720,7 +746,6 @@ function getSelectedToken() {
 // ========================================================================
 // POPULAR CARDS / SELECT DE TOKENS
 // ========================================================================
-
 async function populateTokenCards() {
   if (!tokenCardsContainer) return;
 
@@ -827,7 +852,6 @@ function setSelectedToken(sym) {
 // ========================================================================
 // FEED AO VIVO + TOP BUYERS (range pequeno de blocos)
 // ========================================================================
-
 function listenForPurchases() {
   const publicProvider = new ethers.JsonRpcProvider(RPC_URL);
   const readOnlyContract = new ethers.Contract(
@@ -838,7 +862,7 @@ function listenForPurchases() {
 
   setInterval(async () => {
     try {
-      const latestBlockNumber = await publicProvider.getBlockNumber(); // number
+      const latestBlockNumber = await publicProvider.getBlockNumber();
       const fromBlock = Math.max(0, latestBlockNumber - 9);
       const toBlock = latestBlockNumber;
 
@@ -851,7 +875,6 @@ function listenForPurchases() {
 
       const ordered = events.slice().reverse();
 
-      // LIVE FEED
       if (liveFeedList) {
         liveFeedList.innerHTML = "";
 
@@ -877,7 +900,6 @@ function listenForPurchases() {
         });
       }
 
-      // TOP BUYERS
       if (topBuyersList) {
         const totals = new Map();
 
@@ -923,7 +945,6 @@ function listenForPurchases() {
 // ========================================================================
 // COUNTDOWN
 // ========================================================================
-
 function startCountdown() {
   const interval = setInterval(() => {
     if (!countdownEl) {
@@ -967,76 +988,143 @@ function startCountdown() {
 }
 
 // ========================================================================
-// TRANSAK ONRAMP (CARD TAB) – USADO NO BOTÃO "BUY WITH CARD"
+// COINBASE ONRAMP (CARD TAB) - via backend com sessionToken
 // ========================================================================
+async function createCoinbaseSessionOnBackend(amount, walletAddress) {
+  if (!walletAddress) {
+    throw new Error("Wallet address não informado.");
+  }
 
-function openTransakOnramp(usdValue = 50) {
+  try {
+    const response = await fetch(
+      `${BACKEND_BASE_URL}/api/coinbase/onramp-order`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinationAddress: walletAddress,
+          amountInfo: {
+            amount: amount.toString(),
+            currency: "USD",
+          },
+          userInfo: {
+            email: "juniorcaeb@gmail.com",
+            phone: "+5527999999999",
+            country: "BR",
+          },
+          network: "base",
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Erro ao criar onramp-order no backend:", text);
+      throw new Error("Falha ao criar sessão de pagamento. Tente novamente.");
+    }
+
+    const data = await response.json();
+    console.log("Resposta do backend /onramp-order:", data);
+
+    if (data.sessionToken) {
+      return data.sessionToken;
+    }
+
+    if (data.onrampUrl || data.url) {
+      const url = data.onrampUrl || data.url;
+      return url;
+    }
+
+    throw new Error("Backend não retornou sessionToken nem onrampUrl.");
+  } catch (err) {
+    console.error("Erro em createCoinbaseSessionOnBackend:", err);
+    throw err;
+  }
+}
+
+async function openCoinbaseOnramp(usdValue = 50) {
   if (!userAddress) {
     alert("Connect your wallet first.");
     return;
   }
 
-  if (!window.TransakSDK) {
-    alert("Payment widget not loaded. Tente recarregar a página.");
+  if (!COINBASE_APP_ID) {
+    alert("Coinbase Onramp não configurado (APP ID faltando).");
     return;
   }
 
-  if (!TRANSAK_API_KEY || TRANSAK_API_KEY === "SUA_API_KEY_DA_TRANSAK") {
-    alert("Transak não está configurado (API KEY faltando).");
-    return;
-  }
-
-  const transak = new window.TransakSDK({
-    apiKey: TRANSAK_API_KEY,
-    environment: TRANSAK_ENV, // "STAGING" ou "PRODUCTION"
-    // Você pode trocar para BRL se quiser:
-    // fiatCurrency: "BRL",
-    fiatCurrency: "USD",
-    defaultFiatAmount: usdValue,
-    cryptoCurrencyCode: "BNB",
-    network: "bsc",
-    walletAddress: userAddress,
-    themeColor: "#8B5CF6",
-    email: "juniorcaeb@gmail.com",
-    hostURL: window.location.origin,
-    widgetHeight: "650px",
-    widgetWidth: "450px",
-    disableWalletAddressForm: true,
-  });
-
-  transak.init();
-
-  transak.on(transak.ALL_EVENTS, (data) => {
-    console.log("Transak event:", data);
-  });
-
-  transak.on("TRANSAK_ORDER_SUCCESSFUL", (data) => {
-    console.log("✅ Transak order successful:", data);
-    alert(
-      "Pagamento com cartão/fiat criado com sucesso! Quando o BNB cair na sua carteira, o sistema pode comprar LNR automaticamente (auto-buy)."
+  try {
+    const sessionToken = await createCoinbaseSessionOnBackend(
+      usdValue,
+      userAddress
     );
-  });
 
-  transak.on("TRANSAK_WIDGET_CLOSE", () => {
-    console.log("Transak widget fechado");
-  });
+    if (typeof sessionToken === "string" && sessionToken.startsWith("http")) {
+      window.open(sessionToken, "_blank");
+      return;
+    }
+
+    const options = {
+      appId: COINBASE_APP_ID,
+      sessionToken,
+      widgetParameters: {
+        addresses: {
+          base: [userAddress],
+        },
+        assets: ["USDC"],
+        presetFiatAmount: usdValue,
+        fiatCurrency: "USD",
+        defaultAsset: "USDC",
+        defaultNetwork: "base",
+        defaultPaymentMethod: "CARD",
+      },
+      experienceLoggedIn: "popup",
+      experienceLoggedOut: "popup",
+      closeOnExit: true,
+      closeOnSuccess: true,
+      onSuccess: () => {
+        console.log("✅ Coinbase Onramp sucesso");
+      },
+      onExit: () => {
+        console.log("Coinbase Onramp fechado");
+      },
+      onEvent: (event) => {
+        console.log("Coinbase Onramp event:", event);
+      },
+    };
+
+    initOnRamp(options, (error, instance) => {
+      if (error) {
+        console.error("Erro Coinbase Onramp:", error);
+        alert("Não foi possível abrir o Coinbase Onramp. Veja o console.");
+        return;
+      }
+      instance.open();
+    });
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Erro ao criar sessão de pagamento.");
+  }
 }
 
 // ========================================================================
 // INICIALIZAÇÃO
 // ========================================================================
-
 document.addEventListener("DOMContentLoaded", () => {
-  // AOS
   if (window.AOS) {
     AOS.init({ duration: 800, once: true });
   }
 
-  // HANDLERS PRINCIPAIS
   if (connectWalletBtn) {
-    connectWalletBtn.addEventListener("click", () =>
-      userAddress ? disconnect() : connectWallet()
-    );
+    connectWalletBtn.addEventListener("click", () => {
+      if (userAddress) {
+        disconnect();
+      } else {
+        // Mobile sem provider injetado → força WalletConnect v2
+        const shouldUseWalletConnect = isMobileDevice && !window.ethereum;
+        connectWallet(shouldUseWalletConnect);
+      }
+    });
   }
 
   if (buyButton) {
@@ -1095,24 +1183,17 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Minimum purchase: $5 USD");
         return;
       }
-      // AGORA: usa Transak, não Coinbase, pra funcionar no Brasil
-      openTransakOnramp(usdValue);
+      openCoinbaseOnramp(usdValue);
     });
   }
 
-  // INICIALIZAÇÕES DE PRESALE
   populateTokenCards();
   startCountdown();
   updatePresaleData();
   listenForPurchases();
   setInterval(updatePresaleData, 30000);
 
-  // AUTO BUY: checa novo BNB periodicamente
   setInterval(checkAutoBuy, 8000);
-
-  if (web3Modal.cachedProvider) {
-    connectWallet();
-  }
 
   // CURSOR NEON PERSONALIZADO
   const customCursor = document.querySelector(".custom-cursor");
