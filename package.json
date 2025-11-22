@@ -17,6 +17,7 @@
     "@coinbase/cbpay-js": "^2.4.0",
     "@coinbase/wallet-sdk": "^4.3.7",
     "@moonpay/moonpay-js": "^0.7.5",
+    "@reown/appkit": "^1.8.14",
     "@tailwindcss/vite": "^4.1.15",
     "@walletconnect/ethereum-provider": "^2.23.0",
     "@walletconnect/modal": "^2.7.0",

@@ -17,7 +17,7 @@ import {
 // ========================================================================
 
 // Presale termina em 31/01/2026 23:59:59
-const COUNTDOWN_END_DATE = "2026-01-31T23:59:59";
+const COUNTDOWN_END_DATE = "2026-08-31T23:59:59";
 let BNB_PRICE_IN_USD = 1090; // Fallback
 const HARD_CAP_USD = 2500000; // META DE $2.5 MILHÕES
 const USDT_PRICE_IN_USD = 1;
