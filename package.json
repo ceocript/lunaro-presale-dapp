@@ -20,6 +20,7 @@
     "@tailwindcss/vite": "^4.1.15",
     "@walletconnect/ethereum-provider": "^2.23.0",
     "@walletconnect/modal": "^2.7.0",
+    "@walletconnect/web3-provider": "^1.8.0",
     "axios": "^1.13.2",
     "concurrently": "^9.1.2",
     "cors": "^2.8.5",
@@ -30,7 +31,8 @@
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
     "node-fetch": "^3.3.2",
-    "tailwindcss": "^4.1.15"
+    "tailwindcss": "^4.1.15",
+    "web3modal": "^1.9.12"
   },
   "description": "",
   "main": "main.js",

@@ -38,6 +38,7 @@ const BACKEND_BASE_URL =
   import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 
 const RPC_URL =
+  import.meta.env.VITE_BSC_RPC_URL ||
   "https://bnb-mainnet.g.alchemy.com/v2/HAXUAQ3oER2HJSh_-sFgE"; // Seu Alchemy URL
 
 const COINGECKO_API =
@@ -148,7 +149,7 @@ const lnrToReceiveEl = el("lnrToReceive");
 const buyButton = el("buyButton");
 
 // Multi-Token
-const tokenSelect = el("tokenSelect");
+// const tokenSelect = el("tokenSelect"); // mantido caso exista no futuro
 const tokenAmountInput = el("tokenAmount") || el("usdtAmount");
 const tokenLnrToReceiveEl =
   el("tokenLnrToReceive") || el("usdtLnrToReceive");
@@ -178,14 +179,14 @@ fetchBNBPrice();
 setInterval(fetchBNBPrice, 60000);
 
 // ========================================================================
-// WALLETCONNECT V2 - EthereumProvider
+// WALLETCONNECT V2 - EthereumProvider (modal oficial + deep-link mobile)
 // ========================================================================
 async function getWalletConnectProvider() {
   if (wcProvider) return wcProvider;
 
   wcProvider = await EthereumProvider.init({
     projectId: WALLETCONNECT_PROJECT_ID,
-    showQrModal: true, // exibe o modal oficial (QR + lista de carteiras + deep-link)
+    showQrModal: true, // mostra modal oficial (QR + lista de carteiras + deep-link)
     chains: [56], // BNB Chain
     methods: [
       "eth_sendTransaction",
@@ -202,7 +203,7 @@ async function getWalletConnectProvider() {
       name: "Lunaro Presale",
       description: "Lunaro (LNR) official multi-chain presale dApp.",
       url: window.location.origin,
-      icons: ["/logo.png"], // garante que exista /logo.png no public/
+      icons: ["/logo.png"],
     },
   });
 
@@ -317,7 +318,7 @@ function updateUIOnDisconnect() {
     walletStatusEl.className = "neon-text-purple";
   }
   if (walletAddressEl) walletAddressEl.textContent = "";
-  if (connectWalletBtn) connectWalletBtn.textContent = "Connect Wallet";
+  if (connectWalletBtn) connectWalletBtn.textContent = "CONNECT WALLET";
   disablePurchaseButtons("Conecte a wallet");
 }
 
@@ -332,7 +333,7 @@ async function connectWallet(useWalletConnect = false) {
   try {
     let baseProvider;
 
-    // Desktop ou mobile com provider injetado (Metamask browser, Brave, etc.)
+    // Desktop / mobile com extensão (Metamask, Rabby, Brave, Coinbase, etc.)
     if (!useWalletConnect && window.ethereum) {
       baseProvider = window.ethereum;
       await baseProvider.request({ method: "eth_requestAccounts" });
@@ -343,9 +344,9 @@ async function connectWallet(useWalletConnect = false) {
         baseProvider.on("disconnect", () => disconnect());
       }
     } else {
-      // Mobile Chrome / Safari sem provider → WalletConnect v2 com modal + deep-link
+      // Sem provider injetado → WalletConnect v2 (modal com lista + deep-link)
       baseProvider = await getWalletConnectProvider();
-      await baseProvider.connect(); // exibe o modal brabo
+      await baseProvider.connect();
     }
 
     provider = new ethers.BrowserProvider(baseProvider);
@@ -386,6 +387,10 @@ async function disconnect() {
   contract = null;
   updateUIOnDisconnect();
 }
+
+// Funções globais extras (podem ser usadas em botões / console)
+window.lunaroConnectInjected = () => connectWallet(false);
+window.lunaroConnectWalletConnect = () => connectWallet(true);
 
 // ========================================================================
 // PRESALE DATA UPDATE (DÓLAR + STAGE + LABEL BARRA)
@@ -1059,6 +1064,7 @@ async function openCoinbaseOnramp(usdValue = 50) {
       userAddress
     );
 
+    // Se o backend já devolver uma URL direta, abre em nova aba
     if (typeof sessionToken === "string" && sessionToken.startsWith("http")) {
       window.open(sessionToken, "_blank");
       return;
@@ -1120,8 +1126,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (userAddress) {
         disconnect();
       } else {
-        // Mobile sem provider injetado → força WalletConnect v2
-        const shouldUseWalletConnect = isMobileDevice && !window.ethereum;
+        // Se não tiver provider injetado → usa WalletConnect (lista + deep-link)
+        const shouldUseWalletConnect = !window.ethereum;
         connectWallet(shouldUseWalletConnect);
       }
     });
@@ -1192,7 +1198,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updatePresaleData();
   listenForPurchases();
   setInterval(updatePresaleData, 30000);
-
   setInterval(checkAutoBuy, 8000);
 
   // CURSOR NEON PERSONALIZADO
