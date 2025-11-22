@@ -66,29 +66,34 @@ export async function createOnrampOrder(req, res) {
       message: "Ordem Onramp criada, mas sem sessionToken/onrampUrl explícitos.",
       raw: data,
     });
-  } catch (error) {
-    console.error("❌ Erro Onramp:", error?.response?.data || error);
+    } catch (error) {
+    const apiError = error?.response?.data;
+    console.error("❌ Erro Onramp:", apiError || error.message);
 
-    const status = error.response?.status || 500;
-    const errorData = error.response?.data || {};
-    const errorType =
-      errorData.errorType || errorData.error || errorData.code;
+    // 🚫 Caso 1: Coinbase bloqueou guest checkout na sua região
+    if (apiError?.errorType === "guest_region_forbidden") {
+      // URL base do provedor alternativo (Transak / Ramp / etc.)
+      // Coloque no .env algo como:
+      // LUNARO_FIAT_FALLBACK_URL="https://global.transak.com/?fiatCurrency=USD&cryptoCurrencyCode=BNB&network=BNB_MAINNET&walletAddress={ADDRESS}"
+      const baseFallback = process.env.LUNARO_FIAT_FALLBACK_URL || "https://global.transak.com";
 
-    // 🔥 CASO ESPECÍFICO: região não permitida pra guest onramp
-    if (errorType === "guest_region_forbidden") {
-      return res.status(403).json({
-        code: "GUEST_REGION_FORBIDDEN",
-        message:
-          "Guest onramp transactions are not allowed in the user's region.",
-        docs: errorData.errorLink,
+      const destinationAddress = req.body?.destinationAddress;
+      const fallbackUrl = destinationAddress
+        ? baseFallback.replace("{ADDRESS}", destinationAddress)
+        : baseFallback;
+
+      // ✅ Em vez de erro, devolvemos 200 com URL de fallback
+      return res.json({
+        error: "COINBASE_REGION_BLOCKED",
+        message: apiError.errorMessage,
+        onrampUrl: fallbackUrl,
       });
     }
 
-    // Outros erros genéricos
-    return res.status(status).json({
-      code: errorType || "ONRAMP_ERROR",
-      message: "Erro ao criar ordem Onramp na Coinbase.",
-      details: errorData,
+    // ❌ Outros erros reais (token inválido, config errada, etc.)
+    return res.status(error?.response?.status || 500).json({
+      error: "Erro ao criar ordem Onramp",
+      details: apiError || error.message,
     });
   }
 }

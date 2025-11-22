@@ -1008,12 +1008,15 @@
   <audio id="ui-hover-sound" src="/sounds/hover.mp3" preload="auto"></audio>
   <audio id="ui-click-sound" src="/sounds/click.mp3" preload="auto"></audio>
 
-  <!-- Libs JS -->
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-
-  <!-- Lógica principal da dApp -->
-  <script type="module" src="/main.js"></script>
+    <!-- Libs JS -->
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    
+    <!-- Transak SDK (necessário pro cartão funcionar) -->
+    <script src="https://global.transak.com/sdk/v1.1/widget.js"></script>
+    
+    <!-- Lógica principal da dApp -->
+    <script type="module" src="/main.js"></script>
 
   <script>
     (function () {
