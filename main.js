@@ -38,7 +38,6 @@ const BACKEND_BASE_URL =
   import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 
 const RPC_URL =
-  import.meta.env.VITE_BSC_RPC_URL ||
   "https://bnb-mainnet.g.alchemy.com/v2/HAXUAQ3oER2HJSh_-sFgE"; // Seu Alchemy URL
 
 const COINGECKO_API =
@@ -58,6 +57,28 @@ const COINBASE_APP_ID =
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
   navigator.userAgent
 );
+
+// ========================================================================
+// DEEP LINKs PARA CARTEIRAS (MOBILE)
+// ========================================================================
+const WALLET_DEEP_LINKS = {
+  metamask: (url) => `metamask://dapp/${encodeURIComponent(url)}`,
+  trust: (url) => `trust://browser_redirect?url=${encodeURIComponent(url)}`,
+  okx: (url) =>
+    `okx://wallet/dapp/details?dappUrl=${encodeURIComponent(url)}`,
+  bitget: (url) =>
+    `bitkeep://bkconnect?action=dapp&url=${encodeURIComponent(url)}`,
+  coinbase: (url) => `cbwallet://dapp?url=${encodeURIComponent(url)}`,
+  rabby: (url) => url, // Rabby é mais focado em desktop, aqui só reload mesmo
+};
+
+function openWalletDeepLink(walletId) {
+  const builder = WALLET_DEEP_LINKS[walletId];
+  if (!builder) return;
+  const deepUrl = builder(window.location.href);
+  // No mobile, se a carteira estiver instalada, isso deve abrir o app e o dApp browser
+  window.location.href = deepUrl;
+}
 
 // ========================================================================
 // ABI MÍNIMO ERC20 (PARA ALLOWANCE/APPROVE)
@@ -129,6 +150,10 @@ const purchaseFailureModal = el("purchaseFailureModal");
 const liveFeedList = el("live-feed-list");
 const topBuyersList = el("top-buyers-list");
 
+// 🔥 Modal de seleção de carteira
+const walletModal = el("walletModal");
+const walletModalClose = el("walletModalClose");
+
 const tabs = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
 
@@ -149,7 +174,7 @@ const lnrToReceiveEl = el("lnrToReceive");
 const buyButton = el("buyButton");
 
 // Multi-Token
-// const tokenSelect = el("tokenSelect"); // mantido caso exista no futuro
+const tokenSelect = el("tokenSelect");
 const tokenAmountInput = el("tokenAmount") || el("usdtAmount");
 const tokenLnrToReceiveEl =
   el("tokenLnrToReceive") || el("usdtLnrToReceive");
@@ -179,14 +204,14 @@ fetchBNBPrice();
 setInterval(fetchBNBPrice, 60000);
 
 // ========================================================================
-// WALLETCONNECT V2 - EthereumProvider (modal oficial + deep-link mobile)
+// WALLETCONNECT V2 - EthereumProvider
 // ========================================================================
 async function getWalletConnectProvider() {
   if (wcProvider) return wcProvider;
 
   wcProvider = await EthereumProvider.init({
     projectId: WALLETCONNECT_PROJECT_ID,
-    showQrModal: true, // mostra modal oficial (QR + lista de carteiras + deep-link)
+    showQrModal: true, // exibe o modal oficial (QR + lista de carteiras + deep-link)
     chains: [56], // BNB Chain
     methods: [
       "eth_sendTransaction",
@@ -203,7 +228,7 @@ async function getWalletConnectProvider() {
       name: "Lunaro Presale",
       description: "Lunaro (LNR) official multi-chain presale dApp.",
       url: window.location.origin,
-      icons: ["/logo.png"],
+      icons: ["/logo.png"], // garante que exista /logo.png no public/
     },
   });
 
@@ -318,12 +343,21 @@ function updateUIOnDisconnect() {
     walletStatusEl.className = "neon-text-purple";
   }
   if (walletAddressEl) walletAddressEl.textContent = "";
-  if (connectWalletBtn) connectWalletBtn.textContent = "CONNECT WALLET";
+  if (connectWalletBtn) connectWalletBtn.textContent = "Connect Wallet";
   disablePurchaseButtons("Conecte a wallet");
 }
 
 if (presalePriceEl) {
   presalePriceEl.textContent = `$${DISPLAY_LNR_PRICE_USD.toFixed(4)}`;
+}
+
+// 🔥 Modal helpers
+function openWalletModal() {
+  if (walletModal) walletModal.classList.remove("hidden");
+}
+
+function closeWalletModal() {
+  if (walletModal) walletModal.classList.add("hidden");
 }
 
 // ========================================================================
@@ -333,7 +367,7 @@ async function connectWallet(useWalletConnect = false) {
   try {
     let baseProvider;
 
-    // Desktop / mobile com extensão (Metamask, Rabby, Brave, Coinbase, etc.)
+    // Desktop ou mobile com provider injetado (Metamask browser, Brave, etc.)
     if (!useWalletConnect && window.ethereum) {
       baseProvider = window.ethereum;
       await baseProvider.request({ method: "eth_requestAccounts" });
@@ -344,9 +378,9 @@ async function connectWallet(useWalletConnect = false) {
         baseProvider.on("disconnect", () => disconnect());
       }
     } else {
-      // Sem provider injetado → WalletConnect v2 (modal com lista + deep-link)
+      // Mobile Chrome / Safari sem provider → WalletConnect v2 com modal + deep-link
       baseProvider = await getWalletConnectProvider();
-      await baseProvider.connect();
+      await baseProvider.connect(); // exibe o modal brabo
     }
 
     provider = new ethers.BrowserProvider(baseProvider);
@@ -387,10 +421,6 @@ async function disconnect() {
   contract = null;
   updateUIOnDisconnect();
 }
-
-// Funções globais extras (podem ser usadas em botões / console)
-window.lunaroConnectInjected = () => connectWallet(false);
-window.lunaroConnectWalletConnect = () => connectWallet(true);
 
 // ========================================================================
 // PRESALE DATA UPDATE (DÓLAR + STAGE + LABEL BARRA)
@@ -1064,7 +1094,6 @@ async function openCoinbaseOnramp(usdValue = 50) {
       userAddress
     );
 
-    // Se o backend já devolver uma URL direta, abre em nova aba
     if (typeof sessionToken === "string" && sessionToken.startsWith("http")) {
       window.open(sessionToken, "_blank");
       return;
@@ -1121,14 +1150,86 @@ document.addEventListener("DOMContentLoaded", () => {
     AOS.init({ duration: 800, once: true });
   }
 
+  // ================== BOTÃO CONNECT WALLET ==================
   if (connectWalletBtn) {
     connectWalletBtn.addEventListener("click", () => {
+      // Se já está conectado → botão vira "Disconnect"
       if (userAddress) {
         disconnect();
-      } else {
-        // Se não tiver provider injetado → usa WalletConnect (lista + deep-link)
-        const shouldUseWalletConnect = !window.ethereum;
-        connectWallet(shouldUseWalletConnect);
+        return;
+      }
+
+      // Não conectado → abre modal de seleção de carteira
+      openWalletModal();
+    });
+  }
+
+  // ================== MODAL: OPÇÕES DE CARTEIRA ==================
+  const walletOptionButtons = document.querySelectorAll(".wallet-option-btn");
+
+  walletOptionButtons.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const walletId = btn.getAttribute("data-wallet");
+
+      // Genérico WalletConnect (QR / qualquer carteira)
+      if (walletId === "walletconnect") {
+        try {
+          await connectWallet(true); // força WalletConnect v2
+          closeWalletModal();
+        } catch (e) {
+          console.error(e);
+          alert("Erro ao conectar via WalletConnect.");
+        }
+        return;
+      }
+
+      // DESKTOP ou mobile DApp (já dentro da wallet: window.ethereum existe)
+      if (!isMobileDevice || window.ethereum) {
+        try {
+          await connectWallet(false); // usa provider injetado
+          closeWalletModal();
+        } catch (e) {
+          console.error(e);
+          alert("Erro ao conectar a carteira no navegador.");
+        }
+        return;
+      }
+
+      // MOBILE navegador normal (sem provider injetado)
+      if (isMobileDevice && !window.ethereum) {
+        // Tenta deep link específico se tivermos
+        if (WALLET_DEEP_LINKS[walletId]) {
+          alert(
+            "Vamos abrir o app da carteira. Se nada acontecer, abra o Lunaro pelo navegador DApp dentro da carteira."
+          );
+          closeWalletModal();
+          openWalletDeepLink(walletId);
+          return;
+        }
+
+        // Se não tiver deep-link, cai pro WalletConnect
+        try {
+          await connectWallet(true);
+          closeWalletModal();
+        } catch (e) {
+          console.error(e);
+          alert("Erro ao conectar via WalletConnect.");
+        }
+      }
+    });
+  });
+
+  // ================== FECHAR MODAL (X e clique fora) ==================
+  if (walletModalClose) {
+    walletModalClose.addEventListener("click", () => {
+      closeWalletModal();
+    });
+  }
+
+  if (walletModal) {
+    walletModal.addEventListener("click", (e) => {
+      if (e.target === walletModal) {
+        closeWalletModal();
       }
     });
   }
@@ -1198,6 +1299,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updatePresaleData();
   listenForPurchases();
   setInterval(updatePresaleData, 30000);
+
   setInterval(checkAutoBuy, 8000);
 
   // CURSOR NEON PERSONALIZADO
