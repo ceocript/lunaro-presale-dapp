@@ -19,6 +19,7 @@ import {
 // Presale termina em 31/01/2026 23:59:59
 const COUNTDOWN_END_DATE = "2026-08-31T23:59:59";
 let BNB_PRICE_IN_USD = 1090; // Fallback
+const BRL_PER_USD = 5.5; // Fallback – depois podemos buscar automatico via API
 const HARD_CAP_USD = 2500000; // META DE $2.5 MILHÕES
 const USDT_PRICE_IN_USD = 1;
 const DISPLAY_LNR_PRICE_USD = 0.0275; // $0.0275 por LNR na presale
@@ -187,6 +188,10 @@ let selectedTokenSymbol = null; // USDT / BUSD / USDC / MATIC / ETH
 const cardAmountInput = el("cardAmount");
 const cardLnrToReceiveEl = el("cardLnrToReceive");
 const buyWithCardButton = el("buyWithCardButton");
+// PIX (Kamoney)
+const pixAmountInput = el("pixAmountBr");
+const pixLnrToReceiveEl = el("pixLnrToReceive");
+const buyWithPixButton = el("buyWithPixButton");
 
 // ========================================================================
 // PREÇOS DINÂMICOS
@@ -1023,6 +1028,41 @@ function startCountdown() {
 }
 
 // ========================================================================
+// KAMONEY PIX (BACKEND → /api/kamoney/paymentlink)
+// ========================================================================
+async function createKamoneyPixLink(amountBRL) {
+  if (!userAddress) {
+    alert("Conecte sua wallet primeiro.");
+    throw new Error("Wallet not connected");
+  }
+
+  if (!BACKEND_BASE_URL) {
+    throw new Error("BACKEND_BASE_URL não configurado.");
+  }
+
+  const payload = {
+    amountBRL: Number(amountBRL),
+    label: `Lunaro Presale - Pix - ${userAddress.slice(0, 6)}...`,
+    walletAddress: userAddress,
+  };
+
+  const res = await fetch(`${BACKEND_BASE_URL}/api/kamoney/paymentlink`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.success) {
+    console.error("Erro ao criar Pix Kamoney:", data);
+    throw new Error(data.error || "Erro ao criar link de pagamento PIX.");
+  }
+
+  return data.link; // URL da Kamoney
+}
+
+// ========================================================================
 // COINBASE ONRAMP (CARD TAB) - via backend com sessionToken
 // ========================================================================
 async function createCoinbaseSessionOnBackend(amount, walletAddress) {
@@ -1415,3 +1455,53 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+  // ===== PIX (Kamoney) – cálculo de LNR estimado =====
+  if (pixAmountInput && pixLnrToReceiveEl) {
+    pixAmountInput.addEventListener("input", (e) => {
+      const brlValue = parseFloat(e.target.value) || 0;
+
+      if (Number(tokenRate) > 0) {
+        // BRL → USD → BNB → LNR (estimativa só pra UI)
+        const usdValue = brlValue / BRL_PER_USD;
+        const lnr = (usdValue / BNB_PRICE_IN_USD) * Number(tokenRate);
+
+        pixLnrToReceiveEl.textContent = `${lnr.toLocaleString("en-US", {
+          maximumFractionDigits: 0,
+        })} LNR`;
+      } else {
+        pixLnrToReceiveEl.textContent = "0 LNR";
+      }
+    });
+  }
+
+  // ===== PIX (Kamoney) – botão de compra =====
+  if (buyWithPixButton) {
+    buyWithPixButton.addEventListener("click", async () => {
+      const brlValue = parseFloat(pixAmountInput?.value || "0");
+
+      if (!brlValue || brlValue < 10) {
+        alert("Valor mínimo para PIX é R$ 10,00.");
+        return;
+      }
+
+      if (!userAddress) {
+        alert("Conecte sua wallet primeiro.");
+        return;
+      }
+
+      buyWithPixButton.disabled = true;
+      buyWithPixButton.textContent = "GERANDO PIX...";
+
+      try {
+        const link = await createKamoneyPixLink(brlValue);
+        // abre a tela da Kamoney com QR Code/PIX
+        window.open(link, "_blank");
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Erro ao gerar pagamento PIX via Kamoney.");
+      } finally {
+        buyWithPixButton.disabled = false;
+        buyWithPixButton.textContent = "BUY WITH PIX (KAMONEY)";
+      }
+    });
+  }

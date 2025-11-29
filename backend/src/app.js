@@ -1,27 +1,18 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import coinbaseRoutes from "./routes/coinbaseRoutes.js";
 
-dotenv.config();
+import coinbaseRoutes from "./routes/coinbaseRoutes.js";
+import kamoneyRoutes from "./routes/kamoneyRoutes.js"; // 👈 NOVO
 
 const app = express();
 
-// Middlewares
-app.use(cors({
-  origin: [
-    "http://localhost:5173",   // Vite
-    "https://lunarocoin.com"  // produção – ajusta pro seu domínio
-  ],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 
-// Rotas
+// rotas já existentes
 app.use("/api/coinbase", coinbaseRoutes);
 
-app.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Lunaro backend online" });
-});
+// 👇 nova rota Kamoney
+app.use("/api/kamoney", kamoneyRoutes);
 
 export default app;
