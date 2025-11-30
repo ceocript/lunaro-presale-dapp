@@ -35,8 +35,9 @@ const WALLETCONNECT_PROJECT_ID =
 const ONEINCH_API_KEY =
   import.meta.env.VITE_1INCH_API_KEY || "3ihHZTcYwk4NoMUnIBPdYwBJM1kxyWHr";
 
-const BACKEND_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+// Em dev: VITE_BACKEND_URL=http://localhost:4000
+// Em produção (Vercel): se não tiver env, usa o próprio domínio (window.location.origin)
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 const RPC_URL =
   "https://bnb-mainnet.g.alchemy.com/v2/HAXUAQ3oER2HJSh_-sFgE"; // Seu Alchemy URL
@@ -188,6 +189,7 @@ let selectedTokenSymbol = null; // USDT / BUSD / USDC / MATIC / ETH
 const cardAmountInput = el("cardAmount");
 const cardLnrToReceiveEl = el("cardLnrToReceive");
 const buyWithCardButton = el("buyWithCardButton");
+
 // PIX (Kamoney)
 const pixAmountInput = el("pixAmountBr");
 const pixLnrToReceiveEl = el("pixLnrToReceive");
@@ -1036,9 +1038,8 @@ async function createKamoneyPixLink(amountBRL) {
     throw new Error("Wallet not connected");
   }
 
-  if (!BACKEND_BASE_URL) {
-    throw new Error("BACKEND_BASE_URL não configurado.");
-  }
+  // Se não tiver BACKEND_BASE_URL (env), usa o domínio atual (Vercel)
+  const baseUrl = BACKEND_BASE_URL || window.location.origin;
 
   const payload = {
     amountBRL: Number(amountBRL),
@@ -1046,7 +1047,7 @@ async function createKamoneyPixLink(amountBRL) {
     walletAddress: userAddress,
   };
 
-  const res = await fetch(`${BACKEND_BASE_URL}/api/kamoney/paymentlink`, {
+  const res = await fetch(`${baseUrl}/api/kamoney/paymentlink`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -1070,9 +1071,12 @@ async function createCoinbaseSessionOnBackend(amount, walletAddress) {
     throw new Error("Wallet address não informado.");
   }
 
+  // Mesma lógica: usa env se tiver, se não, usa domínio atual
+  const baseUrl = BACKEND_BASE_URL || window.location.origin;
+
   try {
     const response = await fetch(
-      `${BACKEND_BASE_URL}/api/coinbase/onramp-order`,
+      `${baseUrl}/api/coinbase/onramp-order`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1334,6 +1338,57 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ===== PIX (Kamoney) – cálculo de LNR estimado =====
+  if (pixAmountInput && pixLnrToReceiveEl) {
+    pixAmountInput.addEventListener("input", (e) => {
+      const brlValue = parseFloat(e.target.value) || 0;
+
+      if (Number(tokenRate) > 0) {
+        // BRL → USD → BNB → LNR (estimativa só pra UI)
+        const usdValue = brlValue / BRL_PER_USD;
+        const lnr = (usdValue / BNB_PRICE_IN_USD) * Number(tokenRate);
+
+        pixLnrToReceiveEl.textContent = `${lnr.toLocaleString("en-US", {
+          maximumFractionDigits: 0,
+        })} LNR`;
+      } else {
+        pixLnrToReceiveEl.textContent = "0 LNR";
+      }
+    });
+  }
+
+  // ===== PIX (Kamoney) – botão de compra =====
+  if (buyWithPixButton) {
+    buyWithPixButton.addEventListener("click", async () => {
+      const brlValue = parseFloat(pixAmountInput?.value || "0");
+
+      if (!brlValue || brlValue < 10) {
+        alert("Valor mínimo para PIX é R$ 10,00.");
+        return;
+      }
+
+      if (!userAddress) {
+        alert("Conecte sua wallet primeiro.");
+        return;
+      }
+
+      buyWithPixButton.disabled = true;
+      buyWithPixButton.textContent = "GERANDO PIX...";
+
+      try {
+        const link = await createKamoneyPixLink(brlValue);
+        // abre a tela da Kamoney com QR Code/PIX
+        window.open(link, "_blank");
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Erro ao gerar pagamento PIX via Kamoney.");
+      } finally {
+        buyWithPixButton.disabled = false;
+        buyWithPixButton.textContent = "BUY WITH PIX (KAMONEY)";
+      }
+    });
+  }
+
   populateTokenCards();
   startCountdown();
   updatePresaleData();
@@ -1455,53 +1510,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
-  // ===== PIX (Kamoney) – cálculo de LNR estimado =====
-  if (pixAmountInput && pixLnrToReceiveEl) {
-    pixAmountInput.addEventListener("input", (e) => {
-      const brlValue = parseFloat(e.target.value) || 0;
-
-      if (Number(tokenRate) > 0) {
-        // BRL → USD → BNB → LNR (estimativa só pra UI)
-        const usdValue = brlValue / BRL_PER_USD;
-        const lnr = (usdValue / BNB_PRICE_IN_USD) * Number(tokenRate);
-
-        pixLnrToReceiveEl.textContent = `${lnr.toLocaleString("en-US", {
-          maximumFractionDigits: 0,
-        })} LNR`;
-      } else {
-        pixLnrToReceiveEl.textContent = "0 LNR";
-      }
-    });
-  }
-
-  // ===== PIX (Kamoney) – botão de compra =====
-  if (buyWithPixButton) {
-    buyWithPixButton.addEventListener("click", async () => {
-      const brlValue = parseFloat(pixAmountInput?.value || "0");
-
-      if (!brlValue || brlValue < 10) {
-        alert("Valor mínimo para PIX é R$ 10,00.");
-        return;
-      }
-
-      if (!userAddress) {
-        alert("Conecte sua wallet primeiro.");
-        return;
-      }
-
-      buyWithPixButton.disabled = true;
-      buyWithPixButton.textContent = "GERANDO PIX...";
-
-      try {
-        const link = await createKamoneyPixLink(brlValue);
-        // abre a tela da Kamoney com QR Code/PIX
-        window.open(link, "_blank");
-      } catch (err) {
-        console.error(err);
-        alert(err.message || "Erro ao gerar pagamento PIX via Kamoney.");
-      } finally {
-        buyWithPixButton.disabled = false;
-        buyWithPixButton.textContent = "BUY WITH PIX (KAMONEY)";
-      }
-    });
-  }
